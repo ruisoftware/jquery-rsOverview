@@ -10,8 +10,10 @@
         // load the plugin when page and DOM are fully loaded:
         $(document).ready(
             function () {
-                $("#overviewBrowser").rsOverview();
-                
+                $("#overviewBrowser").rsOverview({
+                    autoHide: true
+                });
+
                 $("#overviewDiv").rsOverview({
                     viewport: $("#overflowed")
                 });
