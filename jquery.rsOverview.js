@@ -40,7 +40,11 @@
 (function ($) {
     $.fn.rsOverview = function (options) {
         var coef;           // cache used to scale graphically 
-        var viewportObj;    // the viewport element being monitoried
+        var viewport = {    // the viewport element being monitoried. By default, viewport is the browser window
+            obj: null,
+            sizeX: 0,
+            sizeY: 0
+        };
         var content = {     // the content element being monitoried. By default, content is the whole document
             obj: null,
             sizeX: 0,
@@ -65,8 +69,11 @@
                     content.sizeX = calc.width();
                     content.sizeY = calc.height();
                 }
+                viewport.sizeX = viewport.obj.width();
+                viewport.sizeY = viewport.obj.height();
+
                 if (defaults.autoHide) {
-                    if (content.sizeX <= viewportObj.width() && content.sizeY <= viewportObj.height()) {
+                    if (content.sizeX <= viewport.sizeX && content.sizeY <= viewport.sizeY) {
                         $(this).hide();
                     } else {
                         $(this).show();
@@ -83,8 +90,8 @@
                 var coefX = content.sizeX / overviewCtrl.width();
                 var coefY = content.sizeY / overviewCtrl.height();
                 coef = coefX > coefY ? coefX : coefY;
-                coefX = (viewportObj.width() - scrollbarPixels) / overviewCtrl.width();
-                coefY = (viewportObj.height() - scrollbarPixels) / overviewCtrl.height();
+                coefX = (viewport.sizeX - scrollbarPixels) / overviewCtrl.width();
+                coefY = (viewport.sizeY - scrollbarPixels) / overviewCtrl.height();
                 coef = coefX > coefY ? (coefX > coef ? coefX : coef) : (coefY > coef ? coefY : coef);
 
                 // compute inner DIV size that corresponds to the size of the content being monitored
@@ -98,13 +105,13 @@
                 }
 
                 // compute inner DIV size and position that corresponds to the size and position of the viewport monitored
-                calcWidth = (viewportObj.width() - scrollbarPixels) / coef;
-                calcHeight = (viewportObj.height() - scrollbarPixels) / coef;
+                calcWidth = (viewport.sizeX - scrollbarPixels) / coef;
+                calcHeight = (viewport.sizeY - scrollbarPixels) / coef;
                 $('div:eq(1)', this).
                     width(calcWidth).
                     height(calcHeight).
-                    css('left', (viewportObj.scrollLeft() / coef) + (defaults.center ? innerContentDiv.position().left : 0)).
-                    css('top', (viewportObj.scrollTop() / coef) + (defaults.center ? innerContentDiv.position().top : 0));
+                    css('left', (viewport.obj.scrollLeft() / coef) + (defaults.center ? innerContentDiv.position().left : 0)).
+                    css('top', (viewport.obj.scrollTop() / coef) + (defaults.center ? innerContentDiv.position().top : 0));
             },
 
         // TODO: find some way to calculate the scroll bar width (value for height will be the same)
@@ -124,17 +131,17 @@
             }
 
             // elements being monitorized for scroll and resize events
-            viewportObj = $(defaults.viewport);
+            viewport.obj = $(defaults.viewport);
             if (defaults.viewport === window) {
                 content.obj = $(document);
             } else {
-                content.obj = viewportObj;
+                content.obj = viewport.obj;
                 // hidden div used to calculate the dimensions of an overflowed div
                 content.obj.prepend('<div style="float: left; display: none;"></div>');
             }
 
             // when the viewport is scrolled or when is resized, the plugin is updated
-            viewportObj.scroll(function () {
+            viewport.obj.scroll(function () {
                 overviewCtrl.trigger('rsOverview.render');
             }).resize(function () {
                 overviewCtrl.trigger('rsOverview.resize');
@@ -150,7 +157,7 @@
                 };
                 $(this).bind('mousemove', function (e) {
                     var innerDIVcontent = $("div:eq(0)", overviewCtrl);
-                    viewportObj.
+                    viewport.obj.
                         scrollLeft(coef * (e.pageX - dragInfo.initClickX + dragInfo.initPos.left - overviewCtrl.position().left - innerDIVcontent.position().left)).
                         scrollTop(coef * (e.pageY - dragInfo.initClickY + dragInfo.initPos.top - overviewCtrl.position().top - innerDIVcontent.position().top));
                 });
@@ -163,7 +170,7 @@
 
             // mouse click on the canvas: scroll jumps directly to that position
             $("div:eq(0)", overviewCtrl).mousedown(function (e) {
-                (defaults.viewport === window ? $("body, html") : viewportObj).animate({
+                (defaults.viewport === window ? $("body, html") : viewport.obj).animate({
                     scrollLeft: coef * (e.pageX - overviewCtrl.position().left - $(this).position().left),
                     scrollTop: coef * (e.pageY - overviewCtrl.position().top - $(this).position().top)
                 }, 'fast');
