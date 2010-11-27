@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Overview plugin</title>
+    <link href="rsOverview.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+    <script type="text/javascript" src="jquery.rsOverview.js"></script>
+    <script type="text/javascript">
+
+        // load the plugin when page and DOM are fully loaded:
+        $(document).ready(
+            function () {
+                $("#overviewBrowser").rsOverview();
+                
+                $("#overviewDiv").rsOverview({
+                    viewport: $("#overflowed")
+                });
+            }
+        );
+    </script>
+  </head>
+  <body>
+
+    <!-- overview plugin markup: one div containing two other divs -->
+
+    <!-- overview for the whole document element -->
+    <div id="overviewBrowser">
+        <div></div>             <!-- 1st div represents the content area -->
+        <div></div>             <!-- 2nd div represents the viewport area -->
+    </div>
+
+
+    <!-- overview for an overflowed div element -->
+    <div id="overviewDiv">
+        <div></div>             <!-- 1st div represents the content area -->
+        <div></div>             <!-- 2nd div represents the viewport area -->
+    </div>
+
+
+    <h1>Demonstration of the overview plugin.</h1>
+
+    <div>You can see two overview controls:
+        <ol>
+            <li>The first one is linked to the browser window. </li>
+            <li>The second one is linked to the overflowed element on the right.<br /></li>
+        </ol>
+
+        <div id="overflowed">
+            this is overflowed content...<br />
+            this is overflowed content...<br />
+            this is overflowed content...<br />
+            this is overflowed content...<br />
+            this is overflowed content...<br />
+            this is overflowed content...<br />
+        </div>
+    
+        How to test:
+        <ul>
+            <li>Scroll and resize your browser (make sure browser scroll bars are visible)</li>
+            <li>Drag and move the viewport (blue rectangle)</li>
+            <li>Click on the red area for fast scroll</li>
+        </ul>
+    </div>
+
+    <p>
+    Note: If you are using IE 6 or below, you might see the plugin control might not stay fixed when page scrolls. This is a know issue related to a lack of support for fixed elements in IE.
+    A workaround for this will be available soon.</p>
+
+
+    <p>some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............</p>
+    <p>some text to fill up content ............some text to fill up content ............some text to fill up content ............some text to fill up content ............</p>
+    <p>some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........</p>
+    <p>some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
+    <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
+    <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
+    <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
+    <p>some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............</p>
+    <p>some text to fill up content ............some text to fill up content ............some text to fill up content ............some text to fill up content ............</p>
+    <p>some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........</p>
+    <p>some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
+    <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
+    <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
+    <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
+    <p>some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............</p>
+    <p>some text to fill up content ............some text to fill up content ............some text to fill up content ............some text to fill up content ............</p>
+    <p>some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........</p>
+    <p>some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
+    <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
+    <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
+    <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
+
+  </body>
+</html>

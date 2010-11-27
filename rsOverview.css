@@ -1,0 +1,75 @@
+body {
+    font-size: 1.5em;
+    line-height: 2em;
+    white-space: nowrap;
+}
+
+ul, ol {
+    margin-top: 0px;
+}
+
+/* Mandatory styles *****/
+#overviewBrowser {
+    position: fixed;
+}
+
+#overviewDiv {
+    position: absolute;
+}
+
+#overviewBrowser div:first-child,
+#overviewBrowser div + div,
+#overviewDiv div:first-child,
+#overviewDiv div + div {
+    position: absolute;
+}
+
+
+
+
+/* Optional styles ******/
+#overviewBrowser {
+    left: 300px;
+    top: 50px;
+    width: 100px;
+    height: 150px;
+    border: 1px dotted gray;
+}
+
+#overviewDiv {
+    right: 200px;
+    top: 250px;
+    width: 80px;
+    height: 50px;
+}
+
+
+#overviewBrowser div:first-child,
+#overviewDiv div:first-child {
+    background-color: Orange;
+
+    filter: alpha(opacity=80);
+	-moz-opacity: 0.8;
+	-khtml-opacity: 0.8;
+	opacity: 0.8;
+}
+
+
+#overviewBrowser div + div,
+#overviewDiv div + div {
+    background-color: blue;
+    filter: alpha(opacity=50);
+	-moz-opacity: 0.5;
+	-khtml-opacity: 0.5;
+	opacity: 0.5;
+}
+
+#overflowed {
+    width: 100px;
+    height: 80px;
+    font-size: 0.5em;
+    line-height: 1em;
+    overflow: auto;
+    float: right;
+    margin-right: 50px;
+}
