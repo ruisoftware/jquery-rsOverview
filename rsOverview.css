@@ -34,6 +34,7 @@ ul, ol {
     width: 100px;
     height: 150px;
     border: 1px dotted gray;
+    z-index: 2;
 }
 
 #overviewDiv {
@@ -52,6 +53,8 @@ ul, ol {
 	-moz-opacity: 0.8;
 	-khtml-opacity: 0.8;
 	opacity: 0.8;
+	
+	cursor: crosshair;
 }
 
 
@@ -62,6 +65,8 @@ ul, ol {
 	-moz-opacity: 0.5;
 	-khtml-opacity: 0.5;
 	opacity: 0.5;
+	
+	cursor: move;
 }
 
 #overflowed {

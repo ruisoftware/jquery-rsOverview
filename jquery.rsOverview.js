@@ -40,15 +40,23 @@
 (function ($) {
     $.fn.rsOverview = function (options) {
         var coef;           // cache used to scale graphically 
-        var viewport = {    // the viewport element being monitoried. By default, viewport is the browser window
-            obj: null,
-            sizeX: 0,
-            sizeY: 0
-        };
         var content = {     // the content element being monitoried. By default, content is the whole document
             obj: null,
             sizeX: 0,
-            sizeY: 0
+            sizeY: 0,
+            resized: function (object) {
+                this.sizeX = object.width();
+                this.sizeY = object.height();
+            }
+        };
+        var viewport = {    // the viewport element being monitoried. By default, viewport is the browser window
+            obj: null,
+            sizeX: 0,
+            sizeY: 0,
+            resized: function () {
+                this.sizeX = this.obj.width();
+                this.sizeY = this.obj.height();
+            }
         };
 
         // defaults input parameters
@@ -61,27 +69,22 @@
         onResize =
             function (event) {
                 if (defaults.viewport === window) {
-                    content.sizeX = content.obj.width();
-                    content.sizeY = content.obj.height();
+                    content.resized(content.obj);
                 } else {
                     var calc = $("div:eq(0)", content.obj);
                     calc.html(content.obj.html());
-                    content.sizeX = calc.width();
-                    content.sizeY = calc.height();
+                    content.resized(calc);
                 }
-                viewport.sizeX = viewport.obj.width();
-                viewport.sizeY = viewport.obj.height();
+                viewport.resized(viewport.obj);
 
                 if (defaults.autoHide) {
                     if (content.sizeX <= viewport.sizeX && content.sizeY <= viewport.sizeY) {
                         $(this).hide();
-                    } else {
-                        $(this).show();
-                        $(this).trigger('rsOverview.render');
+                        return;
                     }
-                } else {
-                    $(this).trigger('rsOverview.render');
+                    $(this).show();
                 }
+                $(this).trigger('rsOverview.render');
             },
 
         onRender =
@@ -89,6 +92,7 @@
                 var overviewCtrl = $(this);
                 var coefX = content.sizeX / overviewCtrl.width();
                 var coefY = content.sizeY / overviewCtrl.height();
+                var scrollbarPixels = defaults.viewport === window ? 0 : scrollbarWidth();
                 coef = coefX > coefY ? coefX : coefY;
                 coefX = (viewport.sizeX - scrollbarPixels) / overviewCtrl.width();
                 coefY = (viewport.sizeY - scrollbarPixels) / overviewCtrl.height();
@@ -120,8 +124,6 @@
                 return 17;
             };
 
-        var scrollbarPixels = scrollbarWidth();
-
         return this.each(function () {
             var overviewCtrl = $(this);
 
@@ -147,7 +149,7 @@
                 overviewCtrl.trigger('rsOverview.resize');
             });
 
-            // div:eq(0) selects the canvas
+            // div:eq(0) selects the content
             // div:eq(1) selects the viewport
             $("div:eq(1)", overviewCtrl).mousedown(function (e) {
                 var dragInfo = {
@@ -155,6 +157,12 @@
                     initClickX: e.pageX,
                     initClickY: e.pageY
                 };
+
+                // prevents text selection during drag
+                this.onselectstart = function () {
+                    return false;
+                };
+
                 $(this).bind('mousemove', function (e) {
                     var innerDIVcontent = $("div:eq(0)", overviewCtrl);
                     viewport.obj.
@@ -168,7 +176,7 @@
                 $("div:eq(1)", overviewCtrl).unbind('mousemove');
             });
 
-            // mouse click on the canvas: scroll jumps directly to that position
+            // mouse click on the content: scroll jumps directly to that position
             $("div:eq(0)", overviewCtrl).mousedown(function (e) {
                 (defaults.viewport === window ? $("body, html") : viewport.obj).animate({
                     scrollLeft: coef * (e.pageX - overviewCtrl.position().left - $(this).position().left),
