@@ -84,6 +84,7 @@
                     }
                     $(this).show();
                 }
+
                 $(this).trigger('rsOverview.render');
             },
 
@@ -169,6 +170,7 @@
                         scrollLeft(coef * (e.pageX - dragInfo.initClickX + dragInfo.initPos.left - overviewCtrl.position().left - innerDIVcontent.position().left)).
                         scrollTop(coef * (e.pageY - dragInfo.initClickY + dragInfo.initPos.top - overviewCtrl.position().top - innerDIVcontent.position().top));
                 });
+                e.preventDefault();
             });
 
             // the mouseup event might happen outside the plugin, so to make sure the unbind always runs, it must done on body level
@@ -182,6 +184,7 @@
                     scrollLeft: coef * (e.pageX - overviewCtrl.position().left - $(this).position().left),
                     scrollTop: coef * (e.pageY - overviewCtrl.position().top - $(this).position().top)
                 }, 'fast');
+                e.preventDefault();
             });
 
             overviewCtrl.bind('rsOverview.resize', onResize);
@@ -191,5 +194,4 @@
             overviewCtrl.trigger('rsOverview.resize');
         });
     };
-
 })(jQuery);

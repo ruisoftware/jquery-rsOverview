@@ -17,14 +17,12 @@ ul, ol {
     position: absolute;
 }
 
-#overviewBrowser div:first-child,
-#overviewBrowser div + div,
-#overviewDiv div:first-child,
-#overviewDiv div + div {
+#overviewBrowser .content,
+#overviewBrowser .viewport,
+#overviewDiv .content,
+#overviewDiv .viewport {
     position: absolute;
 }
-
-
 
 
 /* Optional styles ******/
@@ -45,8 +43,8 @@ ul, ol {
 }
 
 
-#overviewBrowser div:first-child,
-#overviewDiv div:first-child {
+#overviewBrowser .content,
+#overviewDiv .content {
     background-color: Orange;
 
     filter: alpha(opacity=80);
@@ -58,8 +56,8 @@ ul, ol {
 }
 
 
-#overviewBrowser div + div,
-#overviewDiv div + div {
+#overviewBrowser .viewport,
+#overviewDiv .viewport {
     background-color: blue;
     filter: alpha(opacity=50);
 	-moz-opacity: 0.5;
