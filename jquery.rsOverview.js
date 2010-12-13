@@ -71,9 +71,17 @@
                 if (defaults.viewport === window) {
                     content.resized(content.obj);
                 } else {
-                    var calc = $("div:eq(0)", content.obj);
-                    calc.html(content.obj.html());
-                    content.resized(calc);
+                    // get the overflowed content
+                    var overflowedHtml = content.obj.html();
+                    try {
+                        // hidden div used to calculate the dimensions of an overflowed div
+                        content.obj.prepend('<div style="float: left; display: none;"></div>');
+                        var calc = $("div:eq(0)", content.obj); // selects the div created above
+                        calc.html(overflowedHtml); // place the content in this temp div
+                        content.resized(calc); // use this temp div to calculate the content size
+                    } finally {
+                        content.obj.html(overflowedHtml);
+                    }
                 }
                 viewport.resized(viewport.obj);
 
@@ -139,8 +147,6 @@
                 content.obj = $(document);
             } else {
                 content.obj = viewport.obj;
-                // hidden div used to calculate the dimensions of an overflowed div
-                content.obj.prepend('<div style="float: left; display: none;"></div>');
             }
 
             // when the viewport is scrolled or when is resized, the plugin is updated
