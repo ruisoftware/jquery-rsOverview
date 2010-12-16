@@ -15,6 +15,7 @@
 * viewport:        window         The element being monitored by the plug-in.
 * center:          true           Whether to center the rendering of the inner DIVs relatively to the outer DIV.
 * autoHide:        false          Whether to hide the plug-in when the content has the same size or is smaller than the viewport.
+* scrollSpeed:     'slow'         Speed used by the browser to move a selected canvas position   
 *
 * 
 * Usage with default values:
@@ -63,7 +64,8 @@
         var defaults = {
             viewport: window,
             center: true,
-            autoHide: false
+            autoHide: false,
+            scrollSpeed: 'medium'
         },
 
         onResize =
@@ -127,10 +129,18 @@
                     css('top', (viewport.obj.scrollTop() / coef) + (defaults.center ? innerContentDiv.position().top : 0));
             },
 
-        // TODO: find some way to calculate the scroll bar width (value for height will be the same)
+        // returns the width of a vertical scroll bar in pixels (same as height of an horizontal scroll bar)
         scrollbarWidth =
             function () {
-                return 17;
+                // create a div with overflow: scroll (which forces scrollbars to appear)
+                var calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
+                // place it in DOM
+                $("body").append(calcDiv);
+                try {
+                    return 100 - calcDiv[0].clientWidth;
+                } finally {
+                    calcDiv.remove();
+                }
             };
 
         return this.each(function () {
@@ -189,7 +199,7 @@
                 (defaults.viewport === window ? $("body, html") : viewport.obj).animate({
                     scrollLeft: coef * (e.pageX - overviewCtrl.position().left - $(this).position().left),
                     scrollTop: coef * (e.pageY - overviewCtrl.position().top - $(this).position().top)
-                }, 'fast');
+                }, defaults.scrollSpeed);
                 e.preventDefault();
             });
 
