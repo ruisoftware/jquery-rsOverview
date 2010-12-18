@@ -15,7 +15,7 @@
 * viewport:        window         The element being monitored by the plug-in.
 * center:          true           Whether to center the rendering of the inner DIVs relatively to the outer DIV.
 * autoHide:        false          Whether to hide the plug-in when the content has the same size or is smaller than the viewport.
-* scrollSpeed:     'slow'         Speed used by the browser to move a selected canvas position   
+* scrollSpeed:     'medium'       Speed used by the browser to move a selected canvas position   
 *
 * 
 * Usage with default values:
