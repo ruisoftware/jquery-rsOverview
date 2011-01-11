@@ -40,33 +40,35 @@
 */
 (function ($) {
     $.fn.rsOverview = function (options) {
-        var coef;           // cache used to scale graphically 
-        var content = {     // the content element being monitoried. By default, content is the whole document
-            obj: null,
-            sizeX: 0,
-            sizeY: 0,
-            resized: function (object) {
-                this.sizeX = object.width();
-                this.sizeY = object.height();
-            }
-        };
-        var viewport = {    // the viewport element being monitoried. By default, viewport is the browser window
-            obj: null,
-            sizeX: 0,
-            sizeY: 0,
-            resized: function () {
-                this.sizeX = this.obj.width();
-                this.sizeY = this.obj.height();
-            }
-        };
+        var coef,               // cache used to scale graphically
+            scrollbarPixels,    // number pixels occupied by system scroll bar (only used for overflowed elements)
 
-        // defaults input parameters
-        var defaults = {
-            viewport: window,
-            center: true,
-            autoHide: false,
-            scrollSpeed: 'medium'
-        },
+            content = {         // the content element being monitoried. By default, content is the whole document
+                obj: null,
+                sizeX: 0,
+                sizeY: 0,
+                resized: function (object) {
+                    this.sizeX = object.width();
+                    this.sizeY = object.height();
+                }
+            },
+
+            viewport = {        // the viewport element being monitoried. By default, viewport is the browser window
+                obj: null,
+                sizeX: 0,
+                sizeY: 0,
+                resized: function () {
+                    this.sizeX = this.obj.width();
+                    this.sizeY = this.obj.height();
+                }
+            },
+
+            defaults = {        // defaults input parameters
+                viewport: window,
+                center: true,
+                autoHide: false,
+                scrollSpeed: 'medium'
+            },
 
         onResize =
             function (event) {
@@ -103,11 +105,10 @@
                 var overviewCtrl = $(this);
                 var coefX = content.sizeX / overviewCtrl.width();
                 var coefY = content.sizeY / overviewCtrl.height();
-                var scrollbarPixels = defaults.viewport === window ? 0 : scrollbarWidth();
-                coef = coefX > coefY ? coefX : coefY;
+                coef = Math.max(coefX, coefY);
                 coefX = (viewport.sizeX - scrollbarPixels) / overviewCtrl.width();
                 coefY = (viewport.sizeY - scrollbarPixels) / overviewCtrl.height();
-                coef = coefX > coefY ? (coefX > coef ? coefX : coef) : (coefY > coef ? coefY : coef);
+                coef = Math.max(Math.max(coefX, coefY), coef);
 
                 // compute inner DIV size that corresponds to the size of the content being monitored
                 var calcWidth = content.sizeX / coef;
@@ -150,6 +151,8 @@
             if (options) {
                 $.extend(defaults, options);
             }
+
+            scrollbarPixels = defaults.viewport === window ? 0 : scrollbarWidth();
 
             // elements being monitorized for scroll and resize events
             viewport.obj = $(defaults.viewport);
