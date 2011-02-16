@@ -1,5 +1,5 @@
 body {
-    font-size: 1.5em;
+    font-size: 1.2em;
     line-height: 2em;
     white-space: nowrap;
 }
@@ -9,7 +9,7 @@ ul, ol {
 }
 
 /* Mandatory styles *****/
-#overviewBrowser {
+#overviewDoc {
     position: fixed;
 }
 
@@ -17,8 +17,8 @@ ul, ol {
     position: absolute;
 }
 
-#overviewBrowser .content,
-#overviewBrowser .viewport,
+#overviewDoc .content,
+#overviewDoc .viewport,
 #overviewDiv .content,
 #overviewDiv .viewport {
     position: absolute;
@@ -26,8 +26,8 @@ ul, ol {
 
 
 /* Optional styles ******/
-#overviewBrowser {
-    left: 300px;
+#overviewDoc {
+    left: 50px;
     top: 50px;
     width: 100px;
     height: 150px;
@@ -36,29 +36,33 @@ ul, ol {
 }
 
 #overviewDiv {
-    right: 200px;
+    left: 250px;
     top: 250px;
     width: 80px;
     height: 50px;
+    border: 1px dotted gray;
 }
 
-
-#overviewBrowser .content,
+#overviewDoc .content,
 #overviewDiv .content {
     background-color: Orange;
 
-    filter: alpha(opacity=80);
-	-moz-opacity: 0.8;
-	-khtml-opacity: 0.8;
-	opacity: 0.8;
+    filter: alpha(opacity=40);
+	-moz-opacity: 0.4;
+	-khtml-opacity: 0.4;
+	opacity: 0.4;
 	
 	cursor: crosshair;
 }
 
+#overviewDiv .content {
+    background-color: Aqua;
+}
 
-#overviewBrowser .viewport,
+#overviewDoc .viewport,
 #overviewDiv .viewport {
-    background-color: blue;
+    background-color: red;
+    
     filter: alpha(opacity=50);
 	-moz-opacity: 0.5;
 	-khtml-opacity: 0.5;
@@ -67,12 +71,15 @@ ul, ol {
 	cursor: move;
 }
 
+#overviewDiv .viewport {
+    background-color: blue;
+}
+
 #overflowed {
-    width: 100px;
-    height: 80px;
-    font-size: 0.5em;
-    line-height: 1em;
+    width: 200px;
+    height: 100px;
+    font-size: 0.8em;
+    line-height: 0.5em;
     overflow: auto;
-    float: right;
-    margin-right: 50px;
+    border: 1px solid black;
 }

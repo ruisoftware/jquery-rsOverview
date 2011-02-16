@@ -15,9 +15,25 @@
 * viewport:        window         The element being monitored by the plug-in.
 * center:          true           Whether to center the rendering of the inner DIVs relatively to the outer DIV.
 * autoHide:        false          Whether to hide the plug-in when the content has the same size or is smaller than the viewport.
-* scrollSpeed:     'medium'       Speed used by the browser to move a selected canvas position   
+* scrollSpeed:     'medium'       Speed used when moving to a selected canvas position   
 *
-* 
+* Alternatively, you can define default values only once, and then use thoughout all the rsOverview calls.
+* To define defaults values use the $.fn.rsOverview.defaults, e.g.
+* $.fn.rsOverview.defaults.scrollSpeed = 300;
+* $.fn.rsOverview.defaults.autoHide = true;
+*
+* If the size of the content element that is being monited changes, the plug-in must be notified with a call to
+* $.fn.rsOverview.contentSizeChanged(overviewElement);
+* Example:
+* You have the following markup being used by the plug-in to monitor the document.
+* <div id="overview">
+*   <div></div>
+*   <div></div>
+* </div>
+* If the document size changes, then the following call must be made:
+* $.fn.rsOverview.contentSizeChanged($("#overview"));
+* This will render the plug-in to the correct area size.
+
 * Usage with default values:
 * ==========================
 * $('#overview').rsOverview();
@@ -39,17 +55,22 @@
 *
 */
 (function ($) {
-    $.fn.rsOverview = function (options) {
-        var coef,               // cache used to scale graphically
-            scrollbarPixels,    // number pixels occupied by system scroll bar (only used for overflowed elements)
+    var OverviewClass = function (element, opts, scrollbarPixels) {
+        var contentDiv = $("div:eq(0)", element),
+            viewportDiv = $("div:eq(1)", element),
+            coef = 0,           // scale cache
 
             content = {         // the content element being monitoried. By default, content is the whole document
                 obj: null,
                 sizeX: 0,
                 sizeY: 0,
-                resized: function (object) {
-                    this.sizeX = object.width();
-                    this.sizeY = object.height();
+                resized: function () {
+                    this.sizeX = this.obj.width();
+                    this.sizeY = this.obj.height();
+                },
+                resizedOverflow: function () {
+                    this.sizeX = this.obj[0].scrollWidth;
+                    this.sizeY = this.obj[0].scrollHeight;
                 }
             },
 
@@ -63,76 +84,122 @@
                 }
             },
 
-            defaults = {        // defaults input parameters
-                viewport: window,
-                center: true,
-                autoHide: false,
-                scrollSpeed: 'medium'
-            },
-
-        onResize =
-            function (event) {
-                if (defaults.viewport === window) {
-                    content.resized(content.obj);
+            onResize = function (event) {
+                if (opts.viewport === window) {
+                    content.resized();
                 } else {
-                    // get the overflowed content
-                    var overflowedHtml = content.obj.html();
-                    try {
-                        // hidden div used to calculate the dimensions of an overflowed div
-                        content.obj.prepend('<div style="float: left; display: none;"></div>');
-                        var calc = $("div:eq(0)", content.obj); // selects the div created above
-                        calc.html(overflowedHtml); // place the content in this temp div
-                        content.resized(calc); // use this temp div to calculate the content size
-                    } finally {
-                        content.obj.html(overflowedHtml);
-                    }
+                    content.resizedOverflow();
                 }
-                viewport.resized(viewport.obj);
+                viewport.resized();
 
-                if (defaults.autoHide) {
+                if (opts.autoHide) {
                     if (content.sizeX <= viewport.sizeX && content.sizeY <= viewport.sizeY) {
                         $(this).hide();
                         return;
                     }
                     $(this).show();
                 }
-
-                $(this).trigger('rsOverview.render');
-            },
-
-        onRender =
-            function (event) {
-                var overviewCtrl = $(this);
-                var coefX = content.sizeX / overviewCtrl.width();
-                var coefY = content.sizeY / overviewCtrl.height();
+                
+                var coefX = content.sizeX / element.width();
+                var coefY = content.sizeY / element.height();
                 coef = Math.max(coefX, coefY);
-                coefX = (viewport.sizeX - scrollbarPixels) / overviewCtrl.width();
-                coefY = (viewport.sizeY - scrollbarPixels) / overviewCtrl.height();
+                coefX = (viewport.sizeX - scrollbarPixels) / element.width();
+                coefY = (viewport.sizeY - scrollbarPixels) / element.height();
                 coef = Math.max(Math.max(coefX, coefY), coef);
 
                 // compute inner DIV size that corresponds to the size of the content being monitored
                 var calcWidth = content.sizeX / coef;
                 var calcHeight = content.sizeY / coef;
-                var innerContentDiv = $('div:eq(0)', this).width(calcWidth).height(calcHeight);
-                if (defaults.center) {
-                    innerContentDiv.
-                        css('left', (overviewCtrl.width() - calcWidth) / 2).
-                        css('top', (overviewCtrl.height() - calcHeight) / 2);
+                contentDiv.width(calcWidth).height(calcHeight);
+                if (opts.center) {
+                    contentDiv.
+                        css('left', (element.width() - calcWidth) / 2).
+                        css('top', (element.height() - calcHeight) / 2);
                 }
 
-                // compute inner DIV size and position that corresponds to the size and position of the viewport monitored
-                calcWidth = (viewport.sizeX - scrollbarPixels) / coef;
-                calcHeight = (viewport.sizeY - scrollbarPixels) / coef;
-                $('div:eq(1)', this).
-                    width(calcWidth).
-                    height(calcHeight).
-                    css('left', (viewport.obj.scrollLeft() / coef) + (defaults.center ? innerContentDiv.position().left : 0)).
-                    css('top', (viewport.obj.scrollTop() / coef) + (defaults.center ? innerContentDiv.position().top : 0));
+                $(this).trigger('rsOverview.render');
             },
 
-        // returns the width of a vertical scroll bar in pixels (same as height of an horizontal scroll bar)
-        scrollbarWidth =
-            function () {
+            onRender = function (event) {
+
+                // compute inner DIV size and position that corresponds to the size and position of the viewport monitored
+                var calcWidth = (viewport.sizeX - scrollbarPixels) / coef,
+                    calcHeight = (viewport.sizeY - scrollbarPixels) / coef;
+                viewportDiv.
+                    width(calcWidth).
+                    height(calcHeight).
+                    css('left', (viewport.obj.scrollLeft() / coef) + (opts.center ? contentDiv.position().left : 0)).
+                    css('top', (viewport.obj.scrollTop() / coef) + (opts.center ? contentDiv.position().top : 0));
+            },
+
+            init = function () {
+
+                // elements being monitorized for scroll and resize events
+                viewport.obj = $(opts.viewport);
+                if (opts.viewport === window) {
+                    content.obj = $(document);
+                } else {
+                    content.obj = viewport.obj;
+                }
+
+                // when the viewport is scrolled or when is resized, the plugin is updated
+                viewport.obj.scroll(function () {
+                    element.trigger('rsOverview.render');
+                }).resize(function () {
+                    element.trigger('rsOverview.resize');
+                });
+
+                viewportDiv.mousedown(function (e) {
+                    var dragInfo = {
+                            initPos: viewportDiv.offset(),
+                            initClick: {
+                                X: e.pageX,
+                                Y: e.pageY
+                            }
+                        };
+
+                    // prevents text selection during drag
+                    this.onselectstart = function () {
+                        return false;
+                    };
+
+                    viewportDiv.bind('mousemove', function (e) {
+                        var pos = [element.position(), contentDiv.position()];
+                        viewport.obj.
+                            scrollLeft(coef * (e.pageX - dragInfo.initClick.X + dragInfo.initPos.left - pos[0].left - pos[1].left)).
+                            scrollTop(coef * (e.pageY - dragInfo.initClick.Y + dragInfo.initPos.top - pos[0].top - pos[1].top));
+                    });
+                    e.preventDefault();
+                });
+
+                // the mouseup event might happen outside the plugin, so to make sure the unbind always runs, it must done on body level
+                $("body").mouseup(function () {
+                    viewportDiv.unbind('mousemove');
+                });
+
+                // mouse click on the content: scroll jumps directly to that position
+                contentDiv.mousedown(function (e) {
+                    (opts.viewport === window ? $("body, html") : viewport.obj).animate({
+                        scrollLeft: coef * (e.pageX - element.position().left - $(this).position().left),
+                        scrollTop: coef * (e.pageY - element.position().top - $(this).position().top)
+                    }, opts.scrollSpeed);
+                    e.preventDefault();
+                });
+                element.bind('rsOverview.resize', onResize);
+                element.bind('rsOverview.render', onRender);
+
+                // graphical initialization when plugin is called (after page and DOM are loaded)
+                element.trigger('rsOverview.resize');
+            };
+
+        init();
+    }
+
+    $.fn.rsOverview = function (options) {
+        var opts = $.extend({}, $.fn.rsOverview.defaults, options),
+
+            // returns the width of a vertical scroll bar in pixels (same as height of an horizontal scroll bar)
+            scrollbarWidth = function () {
                 // create a div with overflow: scroll (which forces scrollbars to appear)
                 var calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
                 // place it in DOM
@@ -142,75 +209,28 @@
                 } finally {
                     calcDiv.remove();
                 }
-            };
+            },
+
+            // number pixels occupied by system scroll bar (only used for overflowed elements);
+            scrollbarPixels = opts.viewport === window ? 0 : scrollbarWidth();
 
         return this.each(function () {
-            var overviewCtrl = $(this);
-
-            // if options is not empty, then merge with the default settings
-            if (options) {
-                $.extend(defaults, options);
-            }
-
-            scrollbarPixels = defaults.viewport === window ? 0 : scrollbarWidth();
-
-            // elements being monitorized for scroll and resize events
-            viewport.obj = $(defaults.viewport);
-            if (defaults.viewport === window) {
-                content.obj = $(document);
-            } else {
-                content.obj = viewport.obj;
-            }
-
-            // when the viewport is scrolled or when is resized, the plugin is updated
-            viewport.obj.scroll(function () {
-                overviewCtrl.trigger('rsOverview.render');
-            }).resize(function () {
-                overviewCtrl.trigger('rsOverview.resize');
-            });
-
-            // div:eq(0) selects the content
-            // div:eq(1) selects the viewport
-            $("div:eq(1)", overviewCtrl).mousedown(function (e) {
-                var dragInfo = {
-                    initPos: $(this).offset(),
-                    initClickX: e.pageX,
-                    initClickY: e.pageY
-                };
-
-                // prevents text selection during drag
-                this.onselectstart = function () {
-                    return false;
-                };
-
-                $(this).bind('mousemove', function (e) {
-                    var innerDIVcontent = $("div:eq(0)", overviewCtrl);
-                    viewport.obj.
-                        scrollLeft(coef * (e.pageX - dragInfo.initClickX + dragInfo.initPos.left - overviewCtrl.position().left - innerDIVcontent.position().left)).
-                        scrollTop(coef * (e.pageY - dragInfo.initClickY + dragInfo.initPos.top - overviewCtrl.position().top - innerDIVcontent.position().top));
-                });
-                e.preventDefault();
-            });
-
-            // the mouseup event might happen outside the plugin, so to make sure the unbind always runs, it must done on body level
-            $("body").mouseup(function () {
-                $("div:eq(1)", overviewCtrl).unbind('mousemove');
-            });
-
-            // mouse click on the content: scroll jumps directly to that position
-            $("div:eq(0)", overviewCtrl).mousedown(function (e) {
-                (defaults.viewport === window ? $("body, html") : viewport.obj).animate({
-                    scrollLeft: coef * (e.pageX - overviewCtrl.position().left - $(this).position().left),
-                    scrollTop: coef * (e.pageY - overviewCtrl.position().top - $(this).position().top)
-                }, defaults.scrollSpeed);
-                e.preventDefault();
-            });
-
-            overviewCtrl.bind('rsOverview.resize', onResize);
-            overviewCtrl.bind('rsOverview.render', onRender);
-
-            // graphical initialization when plugin is called (after page and DOM are loaded)
-            overviewCtrl.trigger('rsOverview.resize');
+            new OverviewClass($(this), opts, scrollbarPixels);
         });
     };
+
+    $.fn.rsOverview.contentSizeChanged = function (element) {
+        element.trigger('rsOverview.resize');
+    };
+
+    // public access to the default input parameters
+    $.fn.rsOverview.defaults = {
+        viewport: window,
+        center: true,
+        autoHide: false,
+        scrollSpeed: 'medium'
+    };
+
 })(jQuery);
+
+

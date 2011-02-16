@@ -8,29 +8,50 @@
     <script type="text/javascript">
 
         // load the plugin when page and DOM are fully loaded:
-        $(document).ready(
-            function () {
-                $("#overviewBrowser").rsOverview({
-                    autoHide: true
-                });
+        $(document).ready(function () {
+            // set defaults to all overview instances
+            $.fn.rsOverview.defaults.scrollSpeed = 300;
 
-                $("#overviewDiv").rsOverview({
-                    viewport: $("#overflowed")
-                });
-            }
-        );
+            // call plug-in for document
+            $("#overviewDoc").rsOverview();
+
+            // call plug-in for overflowed element
+            $("#overviewDiv").rsOverview({
+                viewport: $("#overflowed"),
+                autoHide: true
+            });
+
+
+
+
+            // define event handlers for buttons
+            $("#btnDocAdd").click(function () {
+                $("<p>" + (new Date()).getTime() + " content appended to document</p>").appendTo($("body"));
+                $.fn.rsOverview.contentSizeChanged($("#overviewDoc"));
+            });
+            $("#btnDocDel").click(function () {
+                $("body > p:last-child").remove();
+                $.fn.rsOverview.contentSizeChanged($("#overviewDoc"));
+            });
+            $("#btnOverflowAdd").click(function () {
+                $("<p>" + (new Date()).getTime() + " content appended to overviewd element</p>").appendTo($("#overflowed"));
+                $.fn.rsOverview.contentSizeChanged($("#overviewDiv"));
+            });
+            $("#btnOverflowDel").click(function () {
+                $("#overflowed p:last-child").remove();
+                $.fn.rsOverview.contentSizeChanged($("#overviewDiv"));
+            });
+        });
     </script>
   </head>
   <body>
 
     <!-- overview plugin markup: one div containing two other divs -->
-
     <!-- overview for the whole document element -->
-    <div id="overviewBrowser">
+    <div id="overviewDoc">
         <div class="content"></div>                 <!-- 1st div represents the content area -->
         <div class="viewport"></div>                <!-- 2nd div represents the viewport area -->
     </div>
-
 
     <!-- overview for an overflowed div element -->
     <div id="overviewDiv">
@@ -39,57 +60,58 @@
     </div>
 
 
+
     <h1>Demonstration of the overview plugin.</h1>
 
-    <div>You can see two overview controls:
+    <div>There are two overview instances of the plug-in on this page:
         <ol>
-            <li>The first one is linked to the browser window. </li>
-            <li>The second one is linked to the overflowed element on the right.<br /></li>
+            <li>The red one, monitors the document size against the window size and position.
+                It should have an absolute position, otherwise the plug-in control will move out of sight when you scroll the document     
+            </li>
+            <li>The blue one, monitors the overflowed element right next to it.</li>
         </ol>
+    </div>
 
-        <div id="overflowed">
-            this is overflowed content...<br />
-            this is overflowed content...<br />
-            this is overflowed content...<br />
-            this is overflowed content...<br />
-            this is overflowed content...<br />
-            this is overflowed content...<br />
-        </div>
-    
+    <div id="overflowed">
+        <p>1 this is content that overflows the container div...</p>
+        <p>2 this is content that overflows the container div...</p>
+        <p>3 this is content that overflows the container div...</p>
+        <p>4 this is content that overflows the container div...</p>
+        <p>5 this is content that overflows the container div...</p>
+        <p>6 this is content that overflows the container div...</p>
+        <p>7 this is content that overflows the container div...</p>
+        <p>8 this is content that overflows the container div...</p>
+    </div>
+    <button id="btnOverflowAdd">add more content to overflowed element</button>
+    <button id="btnOverflowDel">remove some content from overflowed element</button>
+
+    <div style="margin-top: 30px">
         How to test:
         <ul>
             <li>Scroll and resize your browser (make sure browser scroll bars are visible)</li>
-            <li>Drag and move the viewport (blue rectangle)</li>
-            <li>Click on the orange area for fast scroll</li>
+            <li>Drag and move the viewport (small rectangle inside the big one)</li>
+            <li>Click on the big rectangle for fast scroll</li>
+            <li>Click on the add/remove buttons to watch how the plug-in reacts to changes in document size (or overflowed element size)</li>
         </ul>
     </div>
 
+    <button id="btnDocAdd">add more content to document</button>
+    <button id="btnDocDel">remove some content from document</button>
+
+    <p>some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
+    <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
+    <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
+    <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
+    <p>some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............</p>
+    <p>some text to fill up content ............some text to fill up content ............some text to fill up content ............some text to fill up content ............</p>
+    <p>some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........</p>
+    <p>some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
+    <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
+    <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
+    <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
     <p>
-    Note: If you are using IE 6 or below, you might see the plugin control might not stay fixed when page scrolls. This is a know issue related to a lack of support for fixed elements in IE.
-    A workaround for this will be available soon.</p>
-
-
-    <p>some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............</p>
-    <p>some text to fill up content ............some text to fill up content ............some text to fill up content ............some text to fill up content ............</p>
-    <p>some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........</p>
-    <p>some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
-    <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
-    <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
-    <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
-    <p>some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............</p>
-    <p>some text to fill up content ............some text to fill up content ............some text to fill up content ............some text to fill up content ............</p>
-    <p>some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........</p>
-    <p>some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
-    <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
-    <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
-    <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
-    <p>some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............</p>
-    <p>some text to fill up content ............some text to fill up content ............some text to fill up content ............some text to fill up content ............</p>
-    <p>some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........</p>
-    <p>some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
-    <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
-    <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
-    <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
-
+        Note: If you are using IE 6 or below, you might see that the plugin control does not stay fixed when page scrolls. This is a know issue related to a lack of support for fixed elements in IE.
+        A workaround for this will be available soon.
+    </p>
   </body>
 </html>
