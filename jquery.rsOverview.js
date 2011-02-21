@@ -197,7 +197,7 @@
 
     $.fn.rsOverview = function (options) {
         var contentSizeChanged = function () {
-            this.trigger('rsOverview.resize');
+            return this.trigger('rsOverview.resize');
         };
 
         if (typeof options == 'string' && options == 'contentSizeChanged')
