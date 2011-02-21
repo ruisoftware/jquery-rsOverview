@@ -23,7 +23,7 @@
 * $.fn.rsOverview.defaults.autoHide = true;
 *
 * If the size of the content element that is being monited changes, the plug-in must be notified with a call to
-* $.fn.rsOverview.contentSizeChanged(overviewElement);
+* $(element).rsOverview('contentSizeChanged');
 * Example:
 * You have the following markup being used by the plug-in to monitor the document.
 * <div id="overview">
@@ -31,7 +31,7 @@
 *   <div></div>
 * </div>
 * If the document size changes, then the following call must be made:
-* $.fn.rsOverview.contentSizeChanged($("#overview"));
+* $("#overview").rsOverview('contentSizeChanged');
 * This will render the plug-in to the correct area size.
 
 * Usage with default values:
@@ -99,7 +99,7 @@
                     }
                     $(this).show();
                 }
-                
+
                 var coefX = content.sizeX / element.width();
                 var coefY = content.sizeY / element.height();
                 coef = Math.max(coefX, coefY);
@@ -151,12 +151,12 @@
 
                 viewportDiv.mousedown(function (e) {
                     var dragInfo = {
-                            initPos: viewportDiv.offset(),
-                            initClick: {
-                                X: e.pageX,
-                                Y: e.pageY
-                            }
-                        };
+                        initPos: viewportDiv.offset(),
+                        initClick: {
+                            X: e.pageX,
+                            Y: e.pageY
+                        }
+                    };
 
                     // prevents text selection during drag
                     this.onselectstart = function () {
@@ -196,6 +196,13 @@
     }
 
     $.fn.rsOverview = function (options) {
+        var contentSizeChanged = function () {
+            this.trigger('rsOverview.resize');
+        };
+
+        if (typeof options == 'string' && options == 'contentSizeChanged')
+            return contentSizeChanged.apply(this, Array.prototype.slice.call(arguments, 1));
+
         var opts = $.extend({}, $.fn.rsOverview.defaults, options),
 
             // returns the width of a vertical scroll bar in pixels (same as height of an horizontal scroll bar)
@@ -217,10 +224,6 @@
         return this.each(function () {
             new OverviewClass($(this), opts, scrollbarPixels);
         });
-    };
-
-    $.fn.rsOverview.contentSizeChanged = function (element) {
-        element.trigger('rsOverview.resize');
     };
 
     // public access to the default input parameters

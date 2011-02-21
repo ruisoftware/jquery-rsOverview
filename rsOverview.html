@@ -27,19 +27,19 @@
             // define event handlers for buttons
             $("#btnDocAdd").click(function () {
                 $("<p>" + (new Date()).getTime() + " content appended to document</p>").appendTo($("body"));
-                $.fn.rsOverview.contentSizeChanged($("#overviewDoc"));
+                $("#overviewDoc").rsOverview('contentSizeChanged');
             });
             $("#btnDocDel").click(function () {
                 $("body > p:last-child").remove();
-                $.fn.rsOverview.contentSizeChanged($("#overviewDoc"));
+                $("#overviewDoc").rsOverview('contentSizeChanged');
             });
             $("#btnOverflowAdd").click(function () {
                 $("<p>" + (new Date()).getTime() + " content appended to overviewd element</p>").appendTo($("#overflowed"));
-                $.fn.rsOverview.contentSizeChanged($("#overviewDiv"));
+                $("#overviewDiv").rsOverview('contentSizeChanged');
             });
             $("#btnOverflowDel").click(function () {
                 $("#overflowed p:last-child").remove();
-                $.fn.rsOverview.contentSizeChanged($("#overviewDiv"));
+                $("#overviewDiv").rsOverview('contentSizeChanged');
             });
         });
     </script>
