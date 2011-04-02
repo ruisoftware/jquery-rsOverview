@@ -1,20 +1,16 @@
-body {
-    font-size: 1.2em;
-    line-height: 2em;
-    white-space: nowrap;
-}
-
-ul, ol {
-    margin-top: 0px;
-}
-
-/* Mandatory styles *****/
+/********************
+ * Mandatory styles *
+ ********************/
 #overviewDoc {
     position: fixed;
+    width: 100px;
+    height: 150px;
 }
 
 #overviewDiv {
     position: absolute;
+    width: 80px;
+    height: 50px;
 }
 
 #overviewDoc .content,
@@ -25,12 +21,24 @@ ul, ol {
 }
 
 
-/* Optional styles ******/
+
+
+/*******************
+ * Optional styles *
+ *******************/
+body {
+    font-size: 1.2em;
+    line-height: 2em;
+    white-space: nowrap;
+}
+
+ul, ol {
+    margin-top: 0px;
+}
+
 #overviewDoc {
     left: 50px;
     top: 50px;
-    width: 100px;
-    height: 150px;
     border: 1px dotted gray;
     z-index: 2;
 }
@@ -38,8 +46,6 @@ ul, ol {
 #overviewDiv {
     left: 250px;
     top: 250px;
-    width: 80px;
-    height: 50px;
     border: 1px dotted gray;
 }
 

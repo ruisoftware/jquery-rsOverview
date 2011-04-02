@@ -55,33 +55,42 @@
 *
 */
 (function ($) {
-    var OverviewClass = function (element, opts, scrollbarPixels) {
-        var contentDiv = $("div:eq(0)", element),
-            viewportDiv = $("div:eq(1)", element),
+    var OverviewClass = function ($element, opts, scrollbarPixels) {
+        var $divs = $("div", $element),
+            $contentDiv = $divs.eq(0),
+            $viewportDiv = $divs.eq(1),
             coef = 0,           // scale cache
 
             content = {         // the content element being monitoried. By default, content is the whole document
-                obj: null,
+                $obj: null,
                 sizeX: 0,
                 sizeY: 0,
                 resized: function () {
-                    this.sizeX = this.obj.width();
-                    this.sizeY = this.obj.height();
+                    this.sizeX = this.$obj.width();
+                    this.sizeY = this.$obj.height();
                 },
                 resizedOverflow: function () {
-                    this.sizeX = this.obj[0].scrollWidth;
-                    this.sizeY = this.obj[0].scrollHeight;
+                    this.sizeX = this.$obj[0].scrollWidth;
+                    this.sizeY = this.$obj[0].scrollHeight;
                 }
             },
 
             viewport = {        // the viewport element being monitoried. By default, viewport is the browser window
-                obj: null,
+                $obj: null,
                 sizeX: 0,
                 sizeY: 0,
                 resized: function () {
-                    this.sizeX = this.obj.width();
-                    this.sizeY = this.obj.height();
+                    this.sizeX = this.$obj.width();
+                    this.sizeY = this.$obj.height();
                 }
+            },
+
+            getXScrollBarPixels = function () {
+                return content.sizeX <= viewport.sizeX ? 0 : scrollbarPixels;
+            },
+
+            getYScrollBarPixels = function () {
+                return content.sizeY <= viewport.sizeY ? 0 : scrollbarPixels;
             },
 
             onResize = function (event) {
@@ -94,64 +103,71 @@
 
                 if (opts.autoHide) {
                     if (content.sizeX <= viewport.sizeX && content.sizeY <= viewport.sizeY) {
-                        $(this).hide();
+                        $element.hide();
                         return;
                     }
-                    $(this).show();
+                    $element.show();
                 }
 
-                var coefX = content.sizeX / element.width();
-                var coefY = content.sizeY / element.height();
+                var elementSize = {
+                    x: $element.width(),
+                    y: $element.height()
+                },
+                    coefX = content.sizeX / elementSize.x,
+                    coefY = content.sizeY / elementSize.y;
                 coef = Math.max(coefX, coefY);
-                coefX = (viewport.sizeX - scrollbarPixels) / element.width();
-                coefY = (viewport.sizeY - scrollbarPixels) / element.height();
+                coefX = (viewport.sizeX - getYScrollBarPixels()) / elementSize.x;
+                coefY = (viewport.sizeY - getXScrollBarPixels()) / elementSize.y;
                 coef = Math.max(Math.max(coefX, coefY), coef);
 
                 // compute inner DIV size that corresponds to the size of the content being monitored
                 var calcWidth = content.sizeX / coef;
                 var calcHeight = content.sizeY / coef;
-                contentDiv.width(calcWidth).height(calcHeight);
+                $contentDiv.width(calcWidth).height(calcHeight);
                 if (opts.center) {
-                    contentDiv.
-                        css('left', (element.width() - calcWidth) / 2).
-                        css('top', (element.height() - calcHeight) / 2);
+                    $contentDiv.css({
+                        'left': ((elementSize.x - calcWidth) / 2) + 'px',
+                        'top': ((elementSize.y - calcHeight) / 2) + 'px'
+                    });
                 }
 
-                $(this).trigger('rsOverview.render');
+                $element.trigger('render.rsOverview');
             },
 
             onRender = function (event) {
 
                 // compute inner DIV size and position that corresponds to the size and position of the viewport monitored
-                var calcWidth = (viewport.sizeX - scrollbarPixels) / coef,
-                    calcHeight = (viewport.sizeY - scrollbarPixels) / coef;
-                viewportDiv.
+                var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / coef, // width depends on the presence or not of the Yscrollbar
+                    calcHeight = (viewport.sizeY - getXScrollBarPixels()) / coef; // height depends on the presence or not of the Xscrollbar
+                $viewportDiv.
                     width(calcWidth).
                     height(calcHeight).
-                    css('left', (viewport.obj.scrollLeft() / coef) + (opts.center ? contentDiv.position().left : 0)).
-                    css('top', (viewport.obj.scrollTop() / coef) + (opts.center ? contentDiv.position().top : 0));
+                    css({
+                        'left': ((viewport.$obj.scrollLeft() / coef) + (opts.center ? $contentDiv.position().left : 0)) + 'px',
+                        'top': ((viewport.$obj.scrollTop() / coef) + (opts.center ? $contentDiv.position().top : 0)) + 'px'
+                    });
             },
 
             init = function () {
 
                 // elements being monitorized for scroll and resize events
-                viewport.obj = $(opts.viewport);
+                viewport.$obj = $(opts.viewport);
                 if (opts.viewport === window) {
-                    content.obj = $(document);
+                    content.$obj = $(document);
                 } else {
-                    content.obj = viewport.obj;
+                    content.$obj = viewport.$obj;
                 }
 
                 // when the viewport is scrolled or when is resized, the plugin is updated
-                viewport.obj.scroll(function () {
-                    element.trigger('rsOverview.render');
+                viewport.$obj.scroll(function () {
+                    $element.trigger('render.rsOverview');
                 }).resize(function () {
-                    element.trigger('rsOverview.resize');
+                    $element.trigger('resize.rsOverview');
                 });
 
-                viewportDiv.mousedown(function (e) {
+                $viewportDiv.mousedown(function (e) {
                     var dragInfo = {
-                        initPos: viewportDiv.offset(),
+                        initPos: $viewportDiv.offset(),
                         initClick: {
                             X: e.pageX,
                             Y: e.pageY
@@ -163,9 +179,9 @@
                         return false;
                     };
 
-                    viewportDiv.bind('mousemove', function (e) {
-                        var pos = [element.position(), contentDiv.position()];
-                        viewport.obj.
+                    $viewportDiv.bind('mousemove.rsOverview', function (e) {
+                        var pos = [$element.position(), $contentDiv.position()];
+                        viewport.$obj.
                             scrollLeft(coef * (e.pageX - dragInfo.initClick.X + dragInfo.initPos.left - pos[0].left - pos[1].left)).
                             scrollTop(coef * (e.pageY - dragInfo.initClick.Y + dragInfo.initPos.top - pos[0].top - pos[1].top));
                     });
@@ -174,22 +190,22 @@
 
                 // the mouseup event might happen outside the plugin, so to make sure the unbind always runs, it must done on body level
                 $("body").mouseup(function () {
-                    viewportDiv.unbind('mousemove');
+                    $viewportDiv.unbind('mousemove.rsOverview');
                 });
 
                 // mouse click on the content: scroll jumps directly to that position
-                contentDiv.mousedown(function (e) {
-                    (opts.viewport === window ? $("body, html") : viewport.obj).animate({
-                        scrollLeft: coef * (e.pageX - element.position().left - $(this).position().left),
-                        scrollTop: coef * (e.pageY - element.position().top - $(this).position().top)
+                $contentDiv.mousedown(function (e) {
+                    var $pos = [$element.position(), $(this).position()];
+                    (opts.viewport === window ? $("body, html") : viewport.$obj).animate({
+                        scrollLeft: coef * (e.pageX - $pos[0].left - $pos[1].left),
+                        scrollTop: coef * (e.pageY - $pos[0].top - $pos[1].top)
                     }, opts.scrollSpeed);
                     e.preventDefault();
                 });
-                element.bind('rsOverview.resize', onResize);
-                element.bind('rsOverview.render', onRender);
+                $element.bind('resize.rsOverview', onResize).bind('render.rsOverview', onRender);
 
                 // graphical initialization when plugin is called (after page and DOM are loaded)
-                element.trigger('rsOverview.resize');
+                $element.trigger('resize.rsOverview');
             };
 
         init();
@@ -197,29 +213,29 @@
 
     $.fn.rsOverview = function (options) {
         var contentSizeChanged = function () {
-            return this.trigger('rsOverview.resize');
+            return this.trigger('resize.rsOverview');
         };
 
         if (typeof options == 'string' && options == 'contentSizeChanged')
-            return contentSizeChanged.apply(this, Array.prototype.slice.call(arguments, 1));
+            return contentSizeChanged.apply(this);
 
         var opts = $.extend({}, $.fn.rsOverview.defaults, options),
 
             // returns the width of a vertical scroll bar in pixels (same as height of an horizontal scroll bar)
-            scrollbarWidth = function () {
+            getScrollbarWidth = function () {
                 // create a div with overflow: scroll (which forces scrollbars to appear)
-                var calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
+                var $calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
                 // place it in DOM
-                $("body").append(calcDiv);
+                $("body").append($calcDiv);
                 try {
-                    return 100 - calcDiv[0].clientWidth;
+                    return 100 - $calcDiv[0].clientWidth;
                 } finally {
-                    calcDiv.remove();
+                    $calcDiv.remove();
                 }
             },
 
             // number pixels occupied by system scroll bar (only used for overflowed elements);
-            scrollbarPixels = opts.viewport === window ? 0 : scrollbarWidth();
+            scrollbarPixels = opts.viewport === window ? 0 : getScrollbarWidth();
 
         return this.each(function () {
             new OverviewClass($(this), opts, scrollbarPixels);
@@ -235,5 +251,3 @@
     };
 
 })(jQuery);
-
-
