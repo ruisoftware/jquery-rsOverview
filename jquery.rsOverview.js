@@ -196,10 +196,36 @@
                 // mouse click on the content: scroll jumps directly to that position
                 $contentDiv.mousedown(function (e) {
                     var $pos = [$element.position(), $(this).position()];
-                    (opts.viewport === window ? $("body, html") : viewport.$obj).animate({
-                        scrollLeft: coef * (e.pageX - $pos[0].left - $pos[1].left),
-                        scrollTop: coef * (e.pageY - $pos[0].top - $pos[1].top)
-                    }, opts.scrollSpeed);
+                    if (opts.viewport === window) {
+                        var scrHtml = [$("html").scrollLeft(), $("html").scrollTop()],
+                            scrX, scrY, isSteppingX = true, supportsHtml = (scrHtml[0] != 0 || scrHtml[1] != 0);
+
+                        $("html").animate({
+                            scrX: supportsHtml? scrHtml[0] : $("body").scrollLeft(),
+                            scrY: supportsHtml? scrHtml[1] : $("body").scrollTop()
+                        }, {
+                            duration: 0
+                        });
+                        $("html").animate({
+                            scrX: coef * (e.pageX - $pos[0].left - $pos[1].left),
+                            scrY: coef * (e.pageY - $pos[0].top - $pos[1].top)
+                        }, { 
+                            duration: opts.scrollSpeed,
+                            step: function (now, fx) {
+                                if (isSteppingX) {
+                                    $("html, body").scrollLeft(now);
+                                } else {
+                                    $("html, body").scrollTop(now);
+                                }
+                                isSteppingX = !isSteppingX;
+                            }
+                        });
+                    } else {
+                        viewport.$obj.animate({
+                            scrollLeft: coef * (e.pageX - $pos[0].left - $pos[1].left),
+                            scrollTop: coef * (e.pageY - $pos[0].top - $pos[1].top)
+                        }, opts.scrollSpeed);
+                    }
                     e.preventDefault();
                 });
                 $element.bind('resize.rsOverview', onResize).bind('render.rsOverview', onRender);
@@ -228,7 +254,8 @@
                 // place it in DOM
                 $("body").append($calcDiv);
                 try {
-                    return 100 - $calcDiv[0].clientWidth;
+                    var clientWidth = $calcDiv[0].clientWidth;
+                    return 100 - (clientWidth == 100 || clientWidth == 0? 83: clientWidth);
                 } finally {
                     $calcDiv.remove();
                 }
