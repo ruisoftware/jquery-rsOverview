@@ -59,7 +59,13 @@
         var $divs = $("div", $element),
             $contentDiv = $divs.eq(0),
             $viewportDiv = $divs.eq(1),
-            coef = 0,           // scale cache
+            cache = {
+                coef: 0,           // scale cache
+                scrPixels: {
+                    x: scrollbarPixels,
+                    y: scrollbarPixels
+                }
+            },
 
             content = {         // the content element being monitoried. By default, content is the whole document
                 $obj: null,
@@ -70,8 +76,9 @@
                     this.sizeY = this.$obj.height();
                 },
                 resizedOverflow: function () {
-                    this.sizeX = this.$obj[0].scrollWidth;
-                    this.sizeY = this.$obj[0].scrollHeight;
+                    var obj = this.$obj[0].children.length == 1 ? (this.$obj[0].children[0].children.length > 0 ? this.$obj[0].children[0] : this.$obj[0]) : this.$obj[0];
+                    this.sizeX = obj.scrollWidth;
+                    this.sizeY = obj.scrollHeight;
                 }
             },
 
@@ -86,11 +93,11 @@
             },
 
             getXScrollBarPixels = function () {
-                return content.sizeX <= viewport.sizeX ? 0 : scrollbarPixels;
+                return content.sizeX <= viewport.sizeX ? 0 : cache.scrPixels.x;
             },
 
             getYScrollBarPixels = function () {
-                return content.sizeY <= viewport.sizeY ? 0 : scrollbarPixels;
+                return content.sizeY <= viewport.sizeY ? 0 : cache.scrPixels.y;
             },
 
             onResize = function (event) {
@@ -98,6 +105,9 @@
                     content.resized();
                 } else {
                     content.resizedOverflow();
+                    var ovr = [viewport.$obj.css('overflow-x'), viewport.$obj.css('overflow-y')];
+                    cache.scrPixels.x = ovr[0] == 'hidden' ? 0 : scrollbarPixels;
+                    cache.scrPixels.y = ovr[1] == 'hidden' ? 0 : scrollbarPixels;
                 }
                 viewport.resized();
 
@@ -115,14 +125,14 @@
                 },
                     coefX = content.sizeX / elementSize.x,
                     coefY = content.sizeY / elementSize.y;
-                coef = Math.max(coefX, coefY);
+                cache.coef = Math.max(coefX, coefY);
                 coefX = (viewport.sizeX - getYScrollBarPixels()) / elementSize.x;
                 coefY = (viewport.sizeY - getXScrollBarPixels()) / elementSize.y;
-                coef = Math.max(Math.max(coefX, coefY), coef);
+                cache.coef = Math.max(Math.max(coefX, coefY), cache.coef);
 
                 // compute inner DIV size that corresponds to the size of the content being monitored
-                var calcWidth = content.sizeX / coef;
-                var calcHeight = content.sizeY / coef;
+                var calcWidth = content.sizeX / cache.coef,
+                    calcHeight = content.sizeY / cache.coef;
                 $contentDiv.width(calcWidth).height(calcHeight);
                 if (opts.center) {
                     $contentDiv.css({
@@ -137,14 +147,14 @@
             onRender = function (event) {
 
                 // compute inner DIV size and position that corresponds to the size and position of the viewport monitored
-                var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / coef, // width depends on the presence or not of the Yscrollbar
-                    calcHeight = (viewport.sizeY - getXScrollBarPixels()) / coef; // height depends on the presence or not of the Xscrollbar
+                var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.coef,
+                    calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.coef;
                 $viewportDiv.
                     width(calcWidth).
                     height(calcHeight).
                     css({
-                        'left': ((viewport.$obj.scrollLeft() / coef) + (opts.center ? $contentDiv.position().left : 0)) + 'px',
-                        'top': ((viewport.$obj.scrollTop() / coef) + (opts.center ? $contentDiv.position().top : 0)) + 'px'
+                        'left': ((viewport.$obj.scrollLeft() / cache.coef) + (opts.center ? $contentDiv.position().left : 0)) + 'px',
+                        'top': ((viewport.$obj.scrollTop() / cache.coef) + (opts.center ? $contentDiv.position().top : 0)) + 'px'
                     });
             },
 
@@ -182,8 +192,8 @@
                     $viewportDiv.bind('mousemove.rsOverview', function (e) {
                         var pos = [$element.position(), $contentDiv.position()];
                         viewport.$obj.
-                            scrollLeft(coef * (e.pageX - dragInfo.initClick.X + dragInfo.initPos.left - pos[0].left - pos[1].left)).
-                            scrollTop(coef * (e.pageY - dragInfo.initClick.Y + dragInfo.initPos.top - pos[0].top - pos[1].top));
+                            scrollLeft(cache.coef * (e.pageX - dragInfo.initClick.X + dragInfo.initPos.left - pos[0].left - pos[1].left)).
+                            scrollTop(cache.coef * (e.pageY - dragInfo.initClick.Y + dragInfo.initPos.top - pos[0].top - pos[1].top));
                     });
                     e.preventDefault();
                 });
@@ -207,8 +217,8 @@
                             duration: 0
                         });
                         $("html").animate({
-                            scrX: coef * (e.pageX - $pos[0].left - $pos[1].left),
-                            scrY: coef * (e.pageY - $pos[0].top - $pos[1].top)
+                            scrX: cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
+                            scrY: cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
                         }, { 
                             duration: opts.scrollSpeed,
                             step: function (now, fx) {
@@ -222,8 +232,8 @@
                         });
                     } else {
                         viewport.$obj.animate({
-                            scrollLeft: coef * (e.pageX - $pos[0].left - $pos[1].left),
-                            scrollTop: coef * (e.pageY - $pos[0].top - $pos[1].top)
+                            scrollLeft: cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
+                            scrollTop: cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
                         }, opts.scrollSpeed);
                     }
                     e.preventDefault();
@@ -242,13 +252,14 @@
             return this.trigger('resize.rsOverview');
         };
 
-        if (typeof options == 'string' && options == 'contentSizeChanged')
+        if (typeof options == 'string' && options == 'contentSizeChanged') {
             return contentSizeChanged.apply(this);
-
+        }
+        
         var opts = $.extend({}, $.fn.rsOverview.defaults, options),
 
-            // returns the width of a vertical scroll bar in pixels (same as height of an horizontal scroll bar)
-            getScrollbarWidth = function () {
+            // returns the size of a vertical/horizontal scroll bar in pixels
+            getScrollbarSize = function () {
                 // create a div with overflow: scroll (which forces scrollbars to appear)
                 var $calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
                 // place it in DOM
@@ -262,7 +273,7 @@
             },
 
             // number pixels occupied by system scroll bar (only used for overflowed elements);
-            scrollbarPixels = opts.viewport === window ? 0 : getScrollbarWidth();
+            scrollbarPixels = opts.viewport === window ? 0 : getScrollbarSize();
 
         return this.each(function () {
             new OverviewClass($(this), opts, scrollbarPixels);
