@@ -92,6 +92,64 @@
                 }
             },
 
+            bookMarkUtil = {
+                marks: [],
+                // Given a bookmark position [x,y], determines the place where this new scr bookmark is placed (bookmarks
+                // should be stored in the same physical order they have in the content window).
+                // Returns [found, index]. "found" is true if the given scr already exists, false otherwise.
+                // If "found" is true, then "index" is the position where scr exists. If "found" is false, then "index"
+                // is the position where it should be inserted.
+                getIdx: function (scr) {
+                    var candidate = 0;
+                    for (i in this.marks) {
+                        // bookmarks are sorted by Y, then by X
+                        var mark = this.marks[i],
+                            offset = [mark[0] - scr[0], mark[1] - scr[1]];
+                        if (offset[1] < 0) { // the vertical mark position is before the current Y position (scr[1])
+                            candidate = i + 1;
+                        } else {
+                            if (offset[1] == 0) {
+                                if (offset[0] == 0) {
+                                    return [true, i];
+                                } else {
+                                    candidate = i + offset[0] < 0 ? 1 : 0;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    return [false, candidate];
+                },
+                toogle: function () {
+                    var scr = [content.$obj.scrollLeft(), content.$obj.scrollTop()],
+                        idx = this.getIdx(scr);
+                    alert(idx);
+                    alert("before: " + this.marks);
+                    if (!idx[0]) {
+                        this.marks.splice(idx[1], 0, scr); // sorted insertion
+                        alert("inserted");
+                    } else {
+                        this.marks.splice(idx[1], 1); // delete
+                        alert("deleted");
+                    }
+                    alert("after: " + this.marks);
+                },
+                getQt: function () {
+                    return this.marks.length;
+                },
+                clearAll: function () {
+                    this.marks = [];
+                },
+                jumpTo: function (idx) {
+                    if (idx > -1 && idx < this.getQt()) {
+                        content.$obj.scrollLeft(this.marks[idx][0]).scrollTop(this.marks[idx][1]);
+                        return true;
+                    }
+                    return false;
+                }
+            },
+
             getXScrollBarPixels = function () {
                 return content.sizeX <= viewport.sizeX ? 0 : cache.scrPixels.x;
             },
@@ -156,6 +214,10 @@
                         'left': ((viewport.$obj.scrollLeft() / cache.coef) + (opts.center ? $contentDiv.position().left : 0)) + 'px',
                         'top': ((viewport.$obj.scrollTop() / cache.coef) + (opts.center ? $contentDiv.position().top : 0)) + 'px'
                     });
+            },
+
+            onToogleBookmark = function (event) {
+                bookMarkUtil.toogle();
             },
 
             init = function () {
@@ -238,7 +300,10 @@
                     }
                     e.preventDefault();
                 });
-                $element.bind('resize.rsOverview', onResize).bind('render.rsOverview', onRender);
+                $element.
+                    bind('resize.rsOverview', onResize).
+                    bind('render.rsOverview', onRender).
+                    bind('toogleBookmark.rsOverview', onToogleBookmark);
 
                 // graphical initialization when plugin is called (after page and DOM are loaded)
                 $element.trigger('resize.rsOverview');
@@ -250,10 +315,16 @@
     $.fn.rsOverview = function (options) {
         var contentSizeChanged = function () {
             return this.trigger('resize.rsOverview');
-        };
+        },
+        toogleBookmark = function () {
+            return this.trigger('toogleBookmark.rsOverview');
+        };		
 
-        if (typeof options == 'string' && options == 'contentSizeChanged') {
-            return contentSizeChanged.apply(this);
+        if (typeof options == 'string') {
+            switch (options) {
+                case 'contentSizeChanged': 	return contentSizeChanged.apply(this);
+                case 'toogleBookmark': 		return toogleBookmark.apply(this);
+            }
         }
         
         var opts = $.extend({}, $.fn.rsOverview.defaults, options),
