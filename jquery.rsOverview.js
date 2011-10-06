@@ -92,61 +92,54 @@
                 }
             },
 
-            bookMarkUtil = {
+            bookmarkUtil = {
+                currIdx: 0,
                 marks: [],
-                // Given a bookmark position [x,y], determines the place where this new scr bookmark is placed (bookmarks
-                // should be stored in the same physical order they have in the content window).
-                // Returns [found, index]. "found" is true if the given scr already exists, false otherwise.
-                // If "found" is true, then "index" is the position where scr exists. If "found" is false, then "index"
-                // is the position where it should be inserted.
                 getIdx: function (scr) {
-                    var candidate = 0;
+                    // Array.indexOf() only works for atomic values, so need to do this loop
                     for (i in this.marks) {
-                        // bookmarks are sorted by Y, then by X
-                        var mark = this.marks[i],
-                            offset = [mark[0] - scr[0], mark[1] - scr[1]];
-                        if (offset[1] < 0) { // the vertical mark position is before the current Y position (scr[1])
-                            candidate = i + 1;
-                        } else {
-                            if (offset[1] == 0) {
-                                if (offset[0] == 0) {
-                                    return [true, i];
-                                } else {
-                                    candidate = i + offset[0] < 0 ? 1 : 0;
-                                }
-                            } else {
-                                break;
-                            }
+                        if (this.marks[i][0] === scr[0] && this.marks[i][1] === scr[1]) {
+                            return i;
                         }
                     }
-                    return [false, candidate];
+                    return -1;
                 },
                 toogle: function () {
                     var scr = [content.$obj.scrollLeft(), content.$obj.scrollTop()],
                         idx = this.getIdx(scr);
-                    alert(idx);
-                    alert("before: " + this.marks);
-                    if (!idx[0]) {
-                        this.marks.splice(idx[1], 0, scr); // sorted insertion
-                        alert("inserted");
+                    if (idx === -1) {
+                        this.marks.push(scr);
                     } else {
-                        this.marks.splice(idx[1], 1); // delete
-                        alert("deleted");
+                        this.marks.splice(idx, 1); // delete
                     }
-                    alert("after: " + this.marks);
+                    this.currIdx = this.getQt();
                 },
                 getQt: function () {
                     return this.marks.length;
                 },
                 clearAll: function () {
-                    this.marks = [];
+                    this.marks.length = 0;
                 },
-                jumpTo: function (idx) {
+                go: function (idx) {
                     if (idx > -1 && idx < this.getQt()) {
-                        content.$obj.scrollLeft(this.marks[idx][0]).scrollTop(this.marks[idx][1]);
+                        (opts.viewport === window ? $("html,body") : content.$obj).scrollLeft(this.marks[idx][0]).scrollTop(this.marks[idx][1]);
                         return true;
                     }
                     return false;
+                },
+                gotoPrev: function () {
+                    var success = this.go(this.currIdx - 1);
+                    if (success) {
+                        --this.currIdx;
+                    }
+                    return success;
+                },
+                gotoNext: function () {
+                    var success = this.go(this.currIdx + 1);
+                    if (success) {
+                        ++this.currIdx;
+                    }
+                    return success;
                 }
             },
 
@@ -215,9 +208,17 @@
                         'top': ((viewport.$obj.scrollTop() / cache.coef) + (opts.center ? $contentDiv.position().top : 0)) + 'px'
                     });
             },
-
-            onToogleBookmark = function (event) {
-                bookMarkUtil.toogle();
+            onBookmarkToogle = function (event) {
+                bookmarkUtil.toogle();
+            },
+            onBookmarkClearAll = function (event) {
+                bookmarkUtil.clearAll();
+            },
+            onBookmarkGotoPrev = function (event) {
+                bookmarkUtil.gotoPrev();
+            },
+            onBookmarkGotoNext = function (event) {
+                bookmarkUtil.gotoNext();
             },
 
             init = function () {
@@ -266,7 +267,11 @@
                 });
 
                 // mouse click on the content: scroll jumps directly to that position
-                $contentDiv.mousedown(function (e) {
+                $contentDiv.add('.bookmark').mousedown(function (e) {
+                    if ($(this).hasClass('bookmark')) {
+                        $contentDiv.trigger('mousedown');
+                        return;
+                    }
                     var $pos = [$element.position(), $(this).position()];
                     if (opts.viewport === window) {
                         var scrHtml = [$("html").scrollLeft(), $("html").scrollTop()],
@@ -285,9 +290,9 @@
                             duration: opts.scrollSpeed,
                             step: function (now, fx) {
                                 if (isSteppingX) {
-                                    $("html, body").scrollLeft(now);
+                                    $("html,body").scrollLeft(now);
                                 } else {
-                                    $("html, body").scrollTop(now);
+                                    $("html,body").scrollTop(now);
                                 }
                                 isSteppingX = !isSteppingX;
                             }
@@ -303,7 +308,10 @@
                 $element.
                     bind('resize.rsOverview', onResize).
                     bind('render.rsOverview', onRender).
-                    bind('toogleBookmark.rsOverview', onToogleBookmark);
+                    bind('bookmarkToogle.rsOverview', onBookmarkToogle).
+                    bind('bookmarkClearAll.rsOverview', onBookmarkClearAll).
+                    bind('bookmarkGotoPrev.rsOverview', onBookmarkGotoPrev).
+                    bind('bookmarkGotoNext.rsOverview', onBookmarkGotoNext);
 
                 // graphical initialization when plugin is called (after page and DOM are loaded)
                 $element.trigger('resize.rsOverview');
@@ -316,14 +324,27 @@
         var contentSizeChanged = function () {
             return this.trigger('resize.rsOverview');
         },
-        toogleBookmark = function () {
-            return this.trigger('toogleBookmark.rsOverview');
-        };		
+        bookmarkToogle = function () {
+            return this.trigger('bookmarkToogle.rsOverview');
+        },
+        bookmarkClearAll = function () {
+            return this.trigger('bookmarkClearAll.rsOverview');
+        },
+        bookmarkGotoPrev = function () {
+            return this.trigger('bookmarkGotoPrev.rsOverview');
+        },
+        bookmarkGotoNext = function () {
+            return this.trigger('bookmarkGotoNext.rsOverview');
+        };
+        
 
         if (typeof options == 'string') {
             switch (options) {
-                case 'contentSizeChanged': 	return contentSizeChanged.apply(this);
-                case 'toogleBookmark': 		return toogleBookmark.apply(this);
+                case 'contentSizeChanged':     return contentSizeChanged.apply(this);
+                case 'bookmarkToogle':         return bookmarkToogle.apply(this);
+                case 'bookmarkClearAll':     return bookmarkClearAll.apply(this);
+                case 'bookmarkGotoPrev':     return bookmarkGotoPrev.apply(this);
+                case 'bookmarkGotoNext':     return bookmarkGotoNext.apply(this);
             }
         }
         
