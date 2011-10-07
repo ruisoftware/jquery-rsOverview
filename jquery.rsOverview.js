@@ -267,34 +267,41 @@
                 });
 
                 // mouse click on the content: scroll jumps directly to that position
-                $contentDiv.add('.bookmark').mousedown(function (e) {
+                $contentDiv.mousedown(function (e) {
                     if ($(this).hasClass('bookmark')) {
                         $contentDiv.trigger('mousedown');
                         return;
                     }
                     var $pos = [$element.position(), $(this).position()];
                     if (opts.viewport === window) {
-                        var scrHtml = [$("html").scrollLeft(), $("html").scrollTop()],
-                            scrX, scrY, isSteppingX = true, supportsHtml = (scrHtml[0] != 0 || scrHtml[1] != 0);
+                        var fromPnt = [$("html").scrollLeft(), $("html").scrollTop()],
+                            toPnt = [
+                                cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
+                                cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
+                            ],
+                            supportsHtml = (fromPnt[0] != 0 || fromPnt[1] != 0),
+                            scr,
+                            getLinear = function (p1, p2) {
+                                var m = (p1[1] - p2[1]) / (p1[0] - p2[0]);
+                                return [m, p1[1] - m * p1[0]];
+                            };
 
-                        $("html").animate({
-                            scrX: supportsHtml? scrHtml[0] : $("body").scrollLeft(),
-                            scrY: supportsHtml? scrHtml[1] : $("body").scrollTop()
-                        }, {
-                            duration: 0
-                        });
-                        $("html").animate({
-                            scrX: cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
-                            scrY: cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
+                            if (fromPnt[0] === 0 && fromPnt[1] === 0) {
+                                fromPnt[0] = $("body").scrollLeft();
+                                fromPnt[1] = $("body").scrollTop();
+                            }
+                            var maxDeltaIsX = Math.abs(fromPnt[0] - toPnt[0]) > Math.abs(fromPnt[1] - toPnt[1]),
+                                coefs = getLinear(fromPnt, toPnt);
+
+                        $("html").animate({ scr: maxDeltaIsX ? fromPnt[0] : fromPnt[1] }, { duration: 0 }).
+                        animate({
+                            scr: maxDeltaIsX ? toPnt[0] : toPnt[1]
                         }, { 
                             duration: opts.scrollSpeed,
                             step: function (now, fx) {
-                                if (isSteppingX) {
-                                    $("html,body").scrollLeft(now);
-                                } else {
-                                    $("html,body").scrollTop(now);
-                                }
-                                isSteppingX = !isSteppingX;
+                                $("html,body").
+                                    scrollLeft(maxDeltaIsX ? now : coefs[0]*now + coefs[1]).
+                                    scrollTop(maxDeltaIsX ? coefs[0]*now + coefs[1] : now);
                             }
                         });
                     } else {
@@ -340,11 +347,11 @@
 
         if (typeof options == 'string') {
             switch (options) {
-                case 'contentSizeChanged':     return contentSizeChanged.apply(this);
-                case 'bookmarkToogle':         return bookmarkToogle.apply(this);
-                case 'bookmarkClearAll':     return bookmarkClearAll.apply(this);
-                case 'bookmarkGotoPrev':     return bookmarkGotoPrev.apply(this);
-                case 'bookmarkGotoNext':     return bookmarkGotoNext.apply(this);
+                case 'contentSizeChanged':  return contentSizeChanged.apply(this);
+                case 'bookmarkToogle':      return bookmarkToogle.apply(this);
+                case 'bookmarkClearAll':    return bookmarkClearAll.apply(this);
+                case 'bookmarkGotoPrev':    return bookmarkGotoPrev.apply(this);
+                case 'bookmarkGotoNext':    return bookmarkGotoNext.apply(this);
             }
         }
         
