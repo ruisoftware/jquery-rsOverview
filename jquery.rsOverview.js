@@ -56,7 +56,7 @@
 */
 (function ($) {
     var OverviewClass = function ($element, opts, scrollbarPixels) {
-        var $divs = $("div", $element),
+        var $divs = $element.children("div"),
             $contentDiv = $divs.eq(0),
             $viewportDiv = $divs.eq(1),
             cache = {
@@ -94,50 +94,85 @@
 
             bookmarkUtil = {
                 currIdx: 0,
+                qt: 0,
                 marks: [],
+                divPnts: [],
                 getIdx: function (scr) {
                     // Array.indexOf() only works for atomic values, so need to do this loop
-                    for (i in this.marks) {
+                    for (var i in this.marks) {
                         if (this.marks[i][0] === scr[0] && this.marks[i][1] === scr[1]) {
                             return i;
                         }
                     }
                     return -1;
                 },
-                toogle: function () {
+                toggle: function () {
                     var scr = [content.$obj.scrollLeft(), content.$obj.scrollTop()],
                         idx = this.getIdx(scr);
                     if (idx === -1) {
-                        this.marks.push(scr);
+                        this.marks.push(scr); // append
+                        var pos = [$viewportDiv.position().left - $contentDiv.position().left,
+                                   $viewportDiv.position().top - $contentDiv.position().top],
+                            half = [$viewportDiv.width() / 2, $viewportDiv.height() / 2],
+                            pnt = [pos[0] + half[0], pos[1] + half[1],
+                                   $viewportDiv.width(), $viewportDiv.height()],
+                            $bookm = $("<div />").
+                                addClass(opts.bookmarkClass.replace(/^[.]/, '')). // if opts.bookmarkClass string starts with a period, then remove it
+                                appendTo($contentDiv).css({
+                                    'position': 'absolute',
+                                    'left': pnt[0] + 'px',
+                                    'top': pnt[1] + 'px'
+                                });
+                        if ($bookm.width() == 0) { // user did not defined a css width?
+                            $bookm.css('width', '1px');
+                        }
+                        if ($bookm.height() == 0) { // user did not defined a css height?
+                            $bookm.css('height', '1px');
+                        }
+                        this.divPnts.push(pnt);
                     } else {
                         this.marks.splice(idx, 1); // delete
+                        this.divPnts.splice(idx, 1);
+                        $(opts.bookmarkClass + ":eq(0)", $contentDiv).remove();
                     }
-                    this.currIdx = this.getQt();
-                },
-                getQt: function () {
-                    return this.marks.length;
+                    this.qt = this.marks.length;
+                    this.currIdx = this.qt - 1;
                 },
                 clearAll: function () {
                     this.marks.length = 0;
+                    this.divPnts.length = 0;
+                    this.qt = 0;
+                    this.currIdx = -1;
+                    $(opts.bookmarkClass, $contentDiv).remove();
                 },
                 go: function (idx) {
-                    if (idx > -1 && idx < this.getQt()) {
+                    if (idx > -1 && idx < this.qt) {
                         (opts.viewport === window ? $("html,body") : content.$obj).scrollLeft(this.marks[idx][0]).scrollTop(this.marks[idx][1]);
                         return true;
                     }
                     return false;
                 },
                 gotoPrev: function () {
-                    var success = this.go(this.currIdx - 1);
+                    if (this.currIdx > this.qt - 1) {
+                        this.currIdx = this.qt - 1;
+                    }
+                    var success = this.go(this.currIdx);
                     if (success) {
                         --this.currIdx;
+                    } else {
+                        ++this.currIdx;
                     }
                     return success;
                 },
                 gotoNext: function () {
-                    var success = this.go(this.currIdx + 1);
+                    if (this.currIdx < 0) {
+                        this.currIdx = 0;
+                    }
+                    var success = this.go(this.currIdx);
                     if (success) {
                         ++this.currIdx;
+                    } else {
+                        --this.currIdx;
                     }
                     return success;
                 }
@@ -173,8 +208,7 @@
                 var elementSize = {
                     x: $element.width(),
                     y: $element.height()
-                },
-                    coefX = content.sizeX / elementSize.x,
+                }, coefX = content.sizeX / elementSize.x,
                     coefY = content.sizeY / elementSize.y;
                 cache.coef = Math.max(coefX, coefY);
                 coefX = (viewport.sizeX - getYScrollBarPixels()) / elementSize.x;
@@ -196,7 +230,6 @@
             },
 
             onRender = function (event) {
-
                 // compute inner DIV size and position that corresponds to the size and position of the viewport monitored
                 var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.coef,
                     calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.coef;
@@ -207,20 +240,35 @@
                         'left': ((viewport.$obj.scrollLeft() / cache.coef) + (opts.center ? $contentDiv.position().left : 0)) + 'px',
                         'top': ((viewport.$obj.scrollTop() / cache.coef) + (opts.center ? $contentDiv.position().top : 0)) + 'px'
                     });
+                
+                for (var i in bookmarkUtil.marks) {
+                    var pnt = bookmarkUtil.divPnts[i];
+                    $(opts.bookmarkClass + ":eq(" + i + ")", $contentDiv).css({
+                        'left': (pnt[0] * calcWidth / pnt[2]).toFixed(1) + 'px',
+                        'top': (pnt[1] * calcHeight / pnt[3]).toFixed(1) + 'px'
+                    });
+                }
             },
-            onBookmarkToogle = function (event) {
-                bookmarkUtil.toogle();
+            onBookmarkToggle = function (event) {
+                if (opts.bookmarkClass) {
+                    bookmarkUtil.toggle();
+                }
             },
             onBookmarkClearAll = function (event) {
-                bookmarkUtil.clearAll();
+                if (opts.bookmarkClass) {
+                    bookmarkUtil.clearAll();
+                }
             },
             onBookmarkGotoPrev = function (event) {
-                bookmarkUtil.gotoPrev();
+                if (opts.bookmarkClass) {
+                    bookmarkUtil.gotoPrev();
+                }
             },
             onBookmarkGotoNext = function (event) {
-                bookmarkUtil.gotoNext();
+                if (opts.bookmarkClass) {
+                    bookmarkUtil.gotoNext();
+                }
             },
-
             init = function () {
 
                 // elements being monitorized for scroll and resize events
@@ -268,7 +316,7 @@
 
                 // mouse click on the content: scroll jumps directly to that position
                 $contentDiv.mousedown(function (e) {
-                    if ($(this).hasClass('bookmark')) {
+                    if ($(this).hasClass(opts.bookmarkClass)) {
                         $contentDiv.trigger('mousedown');
                         return;
                     }
@@ -286,22 +334,22 @@
                                 return [m, p1[1] - m * p1[0]];
                             };
 
-                            if (fromPnt[0] === 0 && fromPnt[1] === 0) {
-                                fromPnt[0] = $("body").scrollLeft();
-                                fromPnt[1] = $("body").scrollTop();
-                            }
-                            var maxDeltaIsX = Math.abs(fromPnt[0] - toPnt[0]) > Math.abs(fromPnt[1] - toPnt[1]),
+                        if (fromPnt[0] === 0 && fromPnt[1] === 0) {
+                            fromPnt[0] = $("body").scrollLeft();
+                            fromPnt[1] = $("body").scrollTop();
+                        }
+                        var maxDeltaIsX = Math.abs(fromPnt[0] - toPnt[0]) > Math.abs(fromPnt[1] - toPnt[1]),
                                 coefs = getLinear(fromPnt, toPnt);
 
                         $("html").animate({ scr: maxDeltaIsX ? fromPnt[0] : fromPnt[1] }, { duration: 0 }).
                         animate({
                             scr: maxDeltaIsX ? toPnt[0] : toPnt[1]
-                        }, { 
+                        }, {
                             duration: opts.scrollSpeed,
                             step: function (now, fx) {
                                 $("html,body").
-                                    scrollLeft(maxDeltaIsX ? now : coefs[0]*now + coefs[1]).
-                                    scrollTop(maxDeltaIsX ? coefs[0]*now + coefs[1] : now);
+                                    scrollLeft(maxDeltaIsX ? now : coefs[0] * now + coefs[1]).
+                                    scrollTop(maxDeltaIsX ? coefs[0] * now + coefs[1] : now);
                             }
                         });
                     } else {
@@ -315,7 +363,7 @@
                 $element.
                     bind('resize.rsOverview', onResize).
                     bind('render.rsOverview', onRender).
-                    bind('bookmarkToogle.rsOverview', onBookmarkToogle).
+                    bind('bookmarkToggle.rsOverview', onBookmarkToggle).
                     bind('bookmarkClearAll.rsOverview', onBookmarkClearAll).
                     bind('bookmarkGotoPrev.rsOverview', onBookmarkGotoPrev).
                     bind('bookmarkGotoNext.rsOverview', onBookmarkGotoNext);
@@ -331,8 +379,8 @@
         var contentSizeChanged = function () {
             return this.trigger('resize.rsOverview');
         },
-        bookmarkToogle = function () {
-            return this.trigger('bookmarkToogle.rsOverview');
+        bookmarkToggle = function () {
+            return this.trigger('bookmarkToggle.rsOverview');
         },
         bookmarkClearAll = function () {
             return this.trigger('bookmarkClearAll.rsOverview');
@@ -343,21 +391,20 @@
         bookmarkGotoNext = function () {
             return this.trigger('bookmarkGotoNext.rsOverview');
         };
-        
 
         if (typeof options == 'string') {
             switch (options) {
-                case 'contentSizeChanged':  return contentSizeChanged.apply(this);
-                case 'bookmarkToogle':      return bookmarkToogle.apply(this);
-                case 'bookmarkClearAll':    return bookmarkClearAll.apply(this);
-                case 'bookmarkGotoPrev':    return bookmarkGotoPrev.apply(this);
-                case 'bookmarkGotoNext':    return bookmarkGotoNext.apply(this);
+                case 'contentSizeChanged': return contentSizeChanged.apply(this);
+                case 'bookmarkToggle': return bookmarkToggle.apply(this);
+                case 'bookmarkClearAll': return bookmarkClearAll.apply(this);
+                case 'bookmarkGotoPrev': return bookmarkGotoPrev.apply(this);
+                case 'bookmarkGotoNext': return bookmarkGotoNext.apply(this);
             }
         }
-        
+
         var opts = $.extend({}, $.fn.rsOverview.defaults, options),
 
-            // returns the size of a vertical/horizontal scroll bar in pixels
+        // returns the size of a vertical/horizontal scroll bar in pixels
             getScrollbarSize = function () {
                 // create a div with overflow: scroll (which forces scrollbars to appear)
                 var $calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
@@ -365,13 +412,13 @@
                 $("body").append($calcDiv);
                 try {
                     var clientWidth = $calcDiv[0].clientWidth;
-                    return 100 - (clientWidth == 100 || clientWidth == 0? 83: clientWidth);
+                    return 100 - (clientWidth == 100 || clientWidth == 0 ? 83 : clientWidth);
                 } finally {
                     $calcDiv.remove();
                 }
             },
 
-            // number pixels occupied by system scroll bar (only used for overflowed elements);
+        // number pixels occupied by system scroll bar (only used for overflowed elements);
             scrollbarPixels = opts.viewport === window ? 0 : getScrollbarSize();
 
         return this.each(function () {
@@ -384,7 +431,8 @@
         viewport: window,
         center: true,
         autoHide: false,
-        scrollSpeed: 'medium'
+        scrollSpeed: 'medium',
+        bookmarkClass: '.bookm'
     };
 
 })(jQuery);
