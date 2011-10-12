@@ -96,58 +96,72 @@
                 currIdx: 0,
                 qt: 0,
                 marks: [],
-                divPnts: [],
-                getIdx: function (scr) {
-                    // Array.indexOf() only works for atomic values, so need to do this loop
-                    for (var i in this.marks) {
-                        if (this.marks[i][0] === scr[0] && this.marks[i][1] === scr[1]) {
-                            return i;
-                        }
-                    }
-                    return -1;
+                getPnt: function (key) {
+                    var k = key.split("#");
+                    return [parseInt(k[0]), parseInt(k[1])];
                 },
                 toggle: function () {
-                    var scr = [content.$obj.scrollLeft(), content.$obj.scrollTop()],
-                        idx = this.getIdx(scr);
+                    var key = content.$obj.scrollLeft() + "#" + content.$obj.scrollTop(),
+                        idx = this.marks.indexOf(key);
                     if (idx === -1) {
-                        this.marks.push(scr); // append
+                        this.marks.push(key); // append
                         var pos = [$viewportDiv.position().left - $contentDiv.position().left,
                                    $viewportDiv.position().top - $contentDiv.position().top],
                             half = [$viewportDiv.width() / 2, $viewportDiv.height() / 2],
-                            pnt = [pos[0] + half[0], pos[1] + half[1],
-                                   $viewportDiv.width(), $viewportDiv.height()],
                             $bookm = $("<div />").
                                 addClass(opts.bookmarkClass.replace(/^[.]/, '')). // if opts.bookmarkClass string starts with a period, then remove it
-                                appendTo($contentDiv).css({
-                                    'position': 'absolute',
-                                    'left': pnt[0] + 'px',
-                                    'top': pnt[1] + 'px'
-                                });
-                        if ($bookm.width() == 0) { // user did not defined a css width?
+                                appendTo($contentDiv);
+                        var size = [$bookm.width(), $bookm.height()];
+                        if (size[0] == 0) { // user did not defined a css width?
                             $bookm.css('width', '1px');
+                            size[0] = 1;
                         }
-                        if ($bookm.height() == 0) { // user did not defined a css height?
+                        if (size[1] == 0) { // user did not defined a css height?
                             $bookm.css('height', '1px');
+                            size[1] = 1;
                         }
-                        this.divPnts.push(pnt);
+                        $bookm.css({
+                            'position': 'absolute',
+                            'left': (pos[0] + half[0] - size[0] / 2) + 'px',
+                            'top': (pos[1] + half[1] - size[1] / 2) + 'px'
+                        });
+                        this.qt = this.marks.length;
+                        this.currIdx = this.qt - 1;
                     } else {
                         this.marks.splice(idx, 1); // delete
-                        this.divPnts.splice(idx, 1);
-                        $(opts.bookmarkClass + ":eq(0)", $contentDiv).remove();
+                        $(opts.bookmarkClass + ":eq(" + idx + ")", $contentDiv).remove();
+                        this.qt = this.marks.length;
+                        this.currIdx = idx;
                     }
-                    this.qt = this.marks.length;
-                    this.currIdx = this.qt - 1;
+
+                    if (opts.bookmarkEvents.onChangePrevNext) {
+                        if (this.currIdx === -1) {
+                            opts.bookmarkEvents.onChangePrevNext(false, false);
+                            opts.bookmarkEvents.onChangePrevNext(true, false);
+                        } else {
+                            opts.bookmarkEvents.onChangePrevNext(false, true);
+                            opts.bookmarkEvents.onChangePrevNext(true, this.currIdx < this.qt - 1);
+                        }
+                    }
+                    if (opts.bookmarkEvents.onChangeToggle) {
+                        opts.bookmarkEvents.onChangeToggle(this.isMarked());
+                    }
                 },
                 clearAll: function () {
                     this.marks.length = 0;
-                    this.divPnts.length = 0;
                     this.qt = 0;
                     this.currIdx = -1;
                     $(opts.bookmarkClass, $contentDiv).remove();
+                    if (opts.bookmarkEvents.onChangePrevNext) {
+                        opts.bookmarkEvents.onChangePrevNext(false, false);
+                        opts.bookmarkEvents.onChangePrevNext(true, false);
+                    }
                 },
                 go: function (idx) {
                     if (idx > -1 && idx < this.qt) {
-                        (opts.viewport === window ? $("html,body") : content.$obj).scrollLeft(this.marks[idx][0]).scrollTop(this.marks[idx][1]);
+                        var pnt = this.getPnt(this.marks[idx]);
+                        (opts.viewport === window ? $("html,body") : content.$obj).
+                            animate({ scrollLeft: pnt[0], scrollTop: pnt[1] }, opts.scrollSpeed);
                         return true;
                     }
                     return false;
@@ -158,6 +172,14 @@
                     }
                     var success = this.go(this.currIdx);
                     if (success) {
+                        if (opts.bookmarkEvents.onChangePrevNext) {
+                            if (this.currIdx === 0) {
+                                opts.bookmarkEvents.onChangePrevNext(false, false);
+                            }
+                            if (this.currIdx === this.qt - 1) {
+                                opts.bookmarkEvents.onChangePrevNext(true, true);
+                            }
+                        }
                         --this.currIdx;
                     } else {
                         ++this.currIdx;
@@ -170,11 +192,22 @@
                     }
                     var success = this.go(this.currIdx);
                     if (success) {
+                        if (opts.bookmarkEvents.onChangePrevNext) {
+                            if (this.currIdx === 0) {
+                                opts.bookmarkEvents.onChangePrevNext(false, true);
+                            }
+                            if (this.currIdx === this.qt - 1) {
+                                opts.bookmarkEvents.onChangePrevNext(true, false);
+                            }
+                        }
                         ++this.currIdx;
                     } else {
                         --this.currIdx;
                     }
                     return success;
+                },
+                isMarked: function () {
+                    return this.marks.indexOf(content.$obj.scrollLeft() + "#" + content.$obj.scrollTop()) > -1;
                 }
             },
 
@@ -221,8 +254,8 @@
                 $contentDiv.width(calcWidth).height(calcHeight);
                 if (opts.center) {
                     $contentDiv.css({
-                        'left': ((elementSize.x - calcWidth) / 2) + 'px',
-                        'top': ((elementSize.y - calcHeight) / 2) + 'px'
+                        'left': ((elementSize.x - calcWidth) / 2).toFixed(1) + 'px',
+                        'top': ((elementSize.y - calcHeight) / 2).toFixed(1) + 'px'
                     });
                 }
 
@@ -237,16 +270,21 @@
                     width(calcWidth).
                     height(calcHeight).
                     css({
-                        'left': ((viewport.$obj.scrollLeft() / cache.coef) + (opts.center ? $contentDiv.position().left : 0)) + 'px',
-                        'top': ((viewport.$obj.scrollTop() / cache.coef) + (opts.center ? $contentDiv.position().top : 0)) + 'px'
+                        'left': ((viewport.$obj.scrollLeft() / cache.coef) + (opts.center ? $contentDiv.position().left : 0)).toFixed(1) + 'px',
+                        'top': ((viewport.$obj.scrollTop() / cache.coef) + (opts.center ? $contentDiv.position().top : 0)).toFixed(1) + 'px'
                     });
-                
+
                 for (var i in bookmarkUtil.marks) {
-                    var pnt = bookmarkUtil.divPnts[i];
-                    $(opts.bookmarkClass + ":eq(" + i + ")", $contentDiv).css({
-                        'left': (pnt[0] * calcWidth / pnt[2]).toFixed(1) + 'px',
-                        'top': (pnt[1] * calcHeight / pnt[3]).toFixed(1) + 'px'
+                    var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
+                        $bookm = $(opts.bookmarkClass + ":eq(" + i + ")", $contentDiv);
+                    $bookm.css({
+                        'left': ((calcWidth - $bookm.width()) / 2 + (pnt[0] / cache.coef)).toFixed(1) + 'px',
+                        'top': ((calcHeight - $bookm.height()) / 2 + (pnt[1] / cache.coef)).toFixed(1) + 'px'
                     });
+                }
+
+                if (opts.bookmarkClass && opts.bookmarkEvents.onChangeToggle) {
+                    opts.bookmarkEvents.onChangeToggle(bookmarkUtil.isMarked());
                 }
             },
             onBookmarkToggle = function (event) {
@@ -269,6 +307,7 @@
                     bookmarkUtil.gotoNext();
                 }
             },
+
             init = function () {
 
                 // elements being monitorized for scroll and resize events
@@ -316,10 +355,6 @@
 
                 // mouse click on the content: scroll jumps directly to that position
                 $contentDiv.mousedown(function (e) {
-                    if ($(this).hasClass(opts.bookmarkClass)) {
-                        $contentDiv.trigger('mousedown');
-                        return;
-                    }
                     var $pos = [$element.position(), $(this).position()];
                     if (opts.viewport === window) {
                         var fromPnt = [$("html").scrollLeft(), $("html").scrollTop()],
@@ -327,31 +362,14 @@
                                 cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
                                 cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
                             ],
-                            supportsHtml = (fromPnt[0] != 0 || fromPnt[1] != 0),
-                            scr,
-                            getLinear = function (p1, p2) {
-                                var m = (p1[1] - p2[1]) / (p1[0] - p2[0]);
-                                return [m, p1[1] - m * p1[0]];
-                            };
+                            supportsHtml = (fromPnt[0] != 0 || fromPnt[1] != 0);
 
                         if (fromPnt[0] === 0 && fromPnt[1] === 0) {
                             fromPnt[0] = $("body").scrollLeft();
                             fromPnt[1] = $("body").scrollTop();
                         }
-                        var maxDeltaIsX = Math.abs(fromPnt[0] - toPnt[0]) > Math.abs(fromPnt[1] - toPnt[1]),
-                                coefs = getLinear(fromPnt, toPnt);
+                        $("html,body").animate({ scrollLeft: toPnt[0], scrollTop: toPnt[1] }, opts.scrollSpeed);
 
-                        $("html").animate({ scr: maxDeltaIsX ? fromPnt[0] : fromPnt[1] }, { duration: 0 }).
-                        animate({
-                            scr: maxDeltaIsX ? toPnt[0] : toPnt[1]
-                        }, {
-                            duration: opts.scrollSpeed,
-                            step: function (now, fx) {
-                                $("html,body").
-                                    scrollLeft(maxDeltaIsX ? now : coefs[0] * now + coefs[1]).
-                                    scrollTop(maxDeltaIsX ? coefs[0] * now + coefs[1] : now);
-                            }
-                        });
                     } else {
                         viewport.$obj.animate({
                             scrollLeft: cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
@@ -402,21 +420,22 @@
             }
         }
 
-        var opts = $.extend({}, $.fn.rsOverview.defaults, options),
+        var opts = $.extend({}, $.fn.rsOverview.defaults, options);
+        opts.bookmarkEvents = $.extend({}, $.fn.rsOverview.defaults.bookmarkEvents, options ? options.bookmarkEvents : options);
 
         // returns the size of a vertical/horizontal scroll bar in pixels
-            getScrollbarSize = function () {
-                // create a div with overflow: scroll (which forces scrollbars to appear)
-                var $calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
-                // place it in DOM
-                $("body").append($calcDiv);
-                try {
-                    var clientWidth = $calcDiv[0].clientWidth;
-                    return 100 - (clientWidth == 100 || clientWidth == 0 ? 83 : clientWidth);
-                } finally {
-                    $calcDiv.remove();
-                }
-            },
+        getScrollbarSize = function () {
+            // create a div with overflow: scroll (which forces scrollbars to appear)
+            var $calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
+            // place it in DOM
+            $("body").append($calcDiv);
+            try {
+                var clientWidth = $calcDiv[0].clientWidth;
+                return 100 - (clientWidth == 100 || clientWidth == 0 ? 83 : clientWidth);
+            } finally {
+                $calcDiv.remove();
+            }
+        },
 
         // number pixels occupied by system scroll bar (only used for overflowed elements);
             scrollbarPixels = opts.viewport === window ? 0 : getScrollbarSize();
@@ -432,7 +451,11 @@
         center: true,
         autoHide: false,
         scrollSpeed: 'medium',
-        bookmarkClass: '.bookm'
+        bookmarkClass: '.bookm',
+        bookmarkEvents: {
+            onChangePrevNext: null, // function(isNextBtn, enabled)
+            onChangeToggle: null    // function(isDown)
+        }
     };
 
 })(jQuery);
