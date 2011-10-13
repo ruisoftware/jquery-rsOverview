@@ -1,16 +1,11 @@
-/********************
- * Mandatory styles *
- ********************/
+/* Mandatory styles *****/
+/************************/
 #overviewDoc {
     position: fixed;
-    width: 100px;
-    height: 150px;
 }
 
 #overviewDiv {
     position: absolute;
-    width: 80px;
-    height: 50px;
 }
 
 #overviewDoc .content,
@@ -21,44 +16,36 @@
 }
 
 
-
-
-/*******************
- * Optional styles *
- *******************/
+/* Optional styles ******/
+/************************/
 body {
-    font-size: 1.2em;
-    line-height: 2em;
     white-space: nowrap;
 }
 
-ul, ol {
-    margin-top: 0px;
-}
-
 #overviewDoc {
-    left: 50px;
-    top: 50px;
+    right: 20px;
+    top: 20px;
+    width: 100px;
+    height: 150px;
     border: 1px dotted gray;
     z-index: 2;
 }
 
 #overviewDiv {
-    left: 250px;
-    top: 250px;
-    border: 1px dotted gray;
+    left: 230px;
+    top: 460px;
+    width: 80px;
+    height: 50px;
 }
 
 #overviewDoc .content,
 #overviewDiv .content {
     background-color: Orange;
-
     filter: alpha(opacity=40);
-	-moz-opacity: 0.4;
-	-khtml-opacity: 0.4;
-	opacity: 0.4;
-	
-	cursor: crosshair;
+    -moz-opacity: 0.4;
+    -khtml-opacity: 0.4;
+    opacity: 0.4;
+    cursor: crosshair;
 }
 
 #overviewDiv .content {
@@ -68,13 +55,11 @@ ul, ol {
 #overviewDoc .viewport,
 #overviewDiv .viewport {
     background-color: red;
-    
     filter: alpha(opacity=50);
-	-moz-opacity: 0.5;
-	-khtml-opacity: 0.5;
-	opacity: 0.5;
-	
-	cursor: move;
+    -moz-opacity: 0.5;
+    -khtml-opacity: 0.5;
+    opacity: 0.5;
+    cursor: move;
 }
 
 #overviewDiv .viewport {
@@ -88,4 +73,47 @@ ul, ol {
     line-height: 0.5em;
     overflow: auto;
     border: 1px solid black;
+}
+
+.bookm {
+    border: 1px black solid;
+    width: 3px;
+    height: 3px;
+}
+
+#bookmarkPaneDoc {
+    position: fixed;
+    right: 130px;
+    top: 20px;
+}
+
+#contentPaneDoc {
+    position: fixed;
+    right: 130px;
+    top: 95px;
+}
+
+#bookmarkPaneOvr {
+    position: absolute;
+    left: 320px;
+    top: 455px;
+}
+
+#contentPaneOvr {
+    position: absolute;
+    left: 460px;
+    top: 455px;
+}
+
+fieldset {
+    background-color: #eee;
+}
+
+fieldset,
+button {
+    font-size: 0.8em;
+}
+
+h2 {
+    margin-top: 30px;
 }

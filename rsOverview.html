@@ -1,43 +1,83 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Overview plugin</title>
+    <title>Overview - jQuery plug-in</title>
     <link href="rsOverview.css" rel="stylesheet" type="text/css" />
-    <script type="text/javascript" src="jquery-1.6.1.min.js"></script>
+    <script type="text/javascript" src="jquery-1.6.4.min.js"></script>
     <script type="text/javascript" src="jquery.rsOverview.js"></script>
     <script type="text/javascript">
 
-        // load the plugin when page and DOM are fully loaded:
-        $(document).ready(function () {
-            // set defaults to all overview instances
-            $.fn.rsOverview.defaults.scrollSpeed = 300;
+        // load the plug-in when page and DOM are fully loaded:
+        $(function () {
+            // plug-in for document
+            $("#overviewDoc").rsOverview({
+                readonly: true,
+                // event fired when a control - usually a button - needs to change to an enable/disable state
+                onChangeCtrlState: function (kind, enabled) {
+                    // kind is one of these strings: 'prev' or 'next' or 'clear'
+                    if (enabled) {
+                        $("#btnDocBookM_" + kind).removeAttr("disabled");
+                    } else {
+                        $("#btnDocBookM_" + kind).attr("disabled", "disabled");
+                    }
+                }
+            });
 
-            // call plug-in for document
-            $("#overviewDoc").rsOverview();
-
-            // call plug-in for overflowed element
+            // plug-in for overflowed element
             $("#overviewDiv").rsOverview({
                 viewport: $("#overflowed"),
-                autoHide: true
+                onChangeCtrlState: function (kind, enabled) {
+                    if (enabled) {
+                        $("#btnOvrBookM_" + kind).removeAttr("disabled");
+                    } else {
+                        $("#btnOvrBookM_" + kind).attr("disabled", "disabled");
+                    }
+                }
             });
 
 
-
-
-            // define event handlers for buttons
-            $("#btnDocAdd").click(function () {
-                $("<p>" + (new Date()).getTime() + " content appended to document</p>").appendTo($("body"));
+            // click events for the document buttons
+            $("#btnDocBookM_toggle").click(function () {
+                $("#overviewDoc").rsOverview('bookmarkToggle');
+            });
+            $("#btnDocBookM_clear").click(function () {
+                $("#overviewDoc").rsOverview('bookmarkClearAll');
+            });
+            $("#btnDocBookM_prev").click(function () {
+                $("#overviewDoc").rsOverview('bookmarkGotoPrev');
+            });
+            $("#btnDocBookM_next").click(function () {
+                $("#overviewDoc").rsOverview('bookmarkGotoNext');
+            });
+            $("#btnDoc_add").click(function () {
+                $("<p>content appended to the document manually</p>").appendTo($("body"));
                 $("#overviewDoc").rsOverview('contentSizeChanged');
             });
-            $("#btnDocDel").click(function () {
-                $("body > p:last-child").remove();
-                $("#overviewDoc").rsOverview('contentSizeChanged');
+            $("#btnDoc_del").click(function () {
+                //$("body > p:last-child").remove();
+                //$("#overviewDoc").rsOverview('contentSizeChanged');
+                alert($("#overviewDoc").rsOverview('option', 'readonly', false));
             });
-            $("#btnOverflowAdd").click(function () {
-                $("<p>" + (new Date()).getTime() + " content appended to overviewd element</p>").appendTo($("#overflowed"));
+
+
+            // click events for the overflow buttons
+            $("#btnOvrBookM_toggle").click(function () {
+                $("#overviewDiv").rsOverview('bookmarkToggle');
+            });
+            $("#btnOvrBookM_clear").click(function () {
+                $("#overviewDiv").rsOverview('bookmarkClearAll');
+            });
+            $("#btnOvrBookM_prev").click(function () {
+                $("#overviewDiv").rsOverview('bookmarkGotoPrev');
+            });
+            $("#btnOvrBookM_next").click(function () {
+                $("#overviewDiv").rsOverview('bookmarkGotoNext');
+            });
+            $("#btnOvr_add").click(function () {
+                $("<p>content appended to the overviewed element manually</p>").appendTo($("#overflowed"));
                 $("#overviewDiv").rsOverview('contentSizeChanged');
             });
-            $("#btnOverflowDel").click(function () {
+            $("#btnOvr_del").click(function () {
                 $("#overflowed p:last-child").remove();
                 $("#overviewDiv").rsOverview('contentSizeChanged');
             });
@@ -46,14 +86,13 @@
   </head>
   <body>
 
-    <!-- overview plugin markup: one div containing two other divs -->
-    <!-- overview for the whole document element -->
+    <!-- Overview plug-in markup for the whole document element -->
     <div id="overviewDoc">
         <div class="content"></div>                 <!-- 1st div represents the content area -->
         <div class="viewport"></div>                <!-- 2nd div represents the viewport area -->
     </div>
 
-    <!-- overview for an overflowed div element -->
+    <!-- Overview plug-in markup for an overflowed div element -->
     <div id="overviewDiv">
         <div class="content"></div>                 <!-- 1st div represents the content area -->
         <div class="viewport"></div>                <!-- 2nd div represents the viewport area -->
@@ -61,44 +100,82 @@
 
 
 
-    <h1>Demonstration of the overview plugin.</h1>
+    <h1>Demonstration of the jQuery Overview plug-in</h1>
 
-    <div>There are two overview instances of the plug-in on this page:
-        <ol>
-            <li>The red one, monitors the document size against the window size and position.
-                It should have an absolute position, otherwise the plug-in control will move out of sight when you scroll the document     
-            </li>
-            <li>The blue one, monitors the overflowed element right next to it.</li>
-        </ol>
-    </div>
+    <h2>What it is?</h2>
+    <p>This plug-in provides an overview of the whole page the user.<br />
+    It renders two rectangles, one inside another. The smallest one represents the viewport, what the user is currently seeing. The biggest rectangle, represents the entire document area.<br />
+    This allows anyone to quickly jump to any position within the document, bookmark several locations and visit them later on.</p>
+    <p>It provides methods to load/save all bookmarks between page transitions, so that your users can get their bookmarks back everytime they return to an old page.</p>
+
+    <p>It is very light weight, highly customizable through CSS and several plug-in options that also allow the plug-in to run on overflowed elements.</p>
+
+    <h2>How it works?</h2>
+    This page contains two instances of the Overview plug-in:
+    <ol>
+        <li>On the top right corner, you can an instance rendered as a red control that monitors the content of this entire page.<br />
+            It should have a fixed position, to prevent it from moving out of sight when the user navigates through the page.
+        </li>
+        <li>Below, another instance of the plug-in rendered as a blue control that monitors the overflowed element located right next to it.</li>
+    </ol>
+
+    <fieldset id="bookmarkPaneDoc">
+        <legend>Bookmark controls</legend>
+        <button id="btnDocBookM_toggle">Toggle</button>
+        <button id="btnDocBookM_clear" disabled="disabled">Clear all</button><br />
+        <button id="btnDocBookM_prev" disabled="disabled">Prev</button>
+        <button id="btnDocBookM_next" disabled="disabled">Next</button>
+    </fieldset>
+    <fieldset id="contentPaneDoc">
+        <legend>Expand/Shrink page content</legend>
+        <button id="btnDoc_add">Add more content</button><br />
+        <button id="btnDoc_del">Remove some content</button>
+    </fieldset>
 
     <div id="overflowed">
-        <p>1 this is content that overflows the container div...</p>
-        <p>2 this is content that overflows the container div...</p>
-        <p>3 this is content that overflows the container div...</p>
-        <p>4 this is content that overflows the container div...</p>
-        <p>5 this is content that overflows the container div...</p>
-        <p>6 this is content that overflows the container div...</p>
-        <p>7 this is content that overflows the container div...</p>
-        <p>8 this is content that overflows the container div...</p>
+        <p>1 this content overflows the container div...</p>
+        <p>2 this content overflows the container div...</p>
+        <p>3 this content overflows the container div...</p>
+        <p>4 this content overflows the container div...</p>
+        <p>5 this content overflows the container div...</p>
+        <p>6 this content overflows the container div...</p>
+        <p>7 this content overflows the container div...</p>
+        <p>8 this content overflows the container div...</p>
     </div>
-    <button id="btnOverflowAdd">add more content to overflowed element</button>
-    <button id="btnOverflowDel">remove some content from overflowed element</button>
+    <fieldset id="bookmarkPaneOvr">
+        <legend>Bookmark controls</legend>
+        <button id="btnOvrBookM_toggle">Toggle</button>
+        <button id="btnOvrBookM_clear" disabled="disabled">Clear all</button><br />
+        <button id="btnOvrBookM_prev" disabled="disabled">Prev</button>
+        <button id="btnOvrBookM_next" disabled="disabled">Next</button>
+    </fieldset>
+    <fieldset id="contentPaneOvr">
+        <legend>Expand/Shrink content in overflow element</legend>
+        <button id="btnOvr_add">Add more content</button>
+        <button id="btnOvr_del">Remove some content</button>
+    </fieldset>
 
-    <div style="margin-top: 30px">
-        How to test:
-        <ul>
-            <li>Scroll and resize your browser (make sure browser scroll bars are visible)</li>
-            <li>Drag and move the viewport (small rectangle inside the big one)</li>
-            <li>Click on the big rectangle for fast scroll</li>
-            <li>Click on the add/remove buttons to watch how the plug-in reacts to changes in document size (or overflowed element size)</li>
-        </ul>
-    </div>
+    To get a felling of what is this all about, please do the following:
+    <ul>
+        <li>Basic stuff
+            <ul>
+                <li>Drag and move the viewport (the small dark rectangle)</li>
+                <li>Click on the big rectangle for fast scroll</li>
+                <li>Scroll and resize your browser window</li>
+                <li>Click on the add/remove content buttons and watch how the plug-in reacts to changes in content size</li>
+            </ul>
+        </li>
+        <li>Advanced (bookmarks)
+            <ul>
+                <li>Click on the Toggle bookmark, to save/clear the current position.</li>
+                <li>Scroll to a different location and create another bookmark. Now click on the prev/next buttons</li>
+            </ul>
+        </li>
+    </ul>
 
-    <button id="btnDocAdd">add more content to document</button>
-    <button id="btnDocDel">remove some content from document</button>
-
-    <p>some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
+    
+    <p style="margin-top: 100px">
+       some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
     <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
     <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
     <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
@@ -109,9 +186,5 @@
     <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
     <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
     <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
-    <p>
-        Note: If you are using IE 6 or below, you might see that the plugin control does not stay fixed when page scrolls. This is a know issue related to a lack of support for fixed elements in IE.
-        A workaround for this will be available soon.
-    </p>
   </body>
 </html>

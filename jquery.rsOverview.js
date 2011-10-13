@@ -101,17 +101,19 @@
                     return [parseInt(k[0]), parseInt(k[1])];
                 },
                 checkEvents: function () {
-                    if (opts.bookmarkEvents.onChangePrevNext) {
+                    if (opts.onChangeCtrlState) {
                         if (this.currIdx === -1) {
-                            opts.bookmarkEvents.onChangePrevNext(false, false);
-                            opts.bookmarkEvents.onChangePrevNext(true, false);
+                            opts.onChangeCtrlState('prev', false);
+                            opts.onChangeCtrlState('next', false);
+                            opts.onChangeCtrlState('clear', false);
                         } else {
-                            opts.bookmarkEvents.onChangePrevNext(false, true);
-                            opts.bookmarkEvents.onChangePrevNext(true, this.currIdx < this.qt - 1);
+                            opts.onChangeCtrlState('prev', true);
+                            opts.onChangeCtrlState('next', this.currIdx < this.qt - 1);
+                            opts.onChangeCtrlState('clear', true);
                         }
                     }
-                    if (opts.bookmarkEvents.onChangeToggle) {
-                        opts.bookmarkEvents.onChangeToggle(this.isMarked());
+                    if (opts.onChangeToggle) {
+                        opts.onChangeToggle(this.isMarked());
                     }
                 },
                 doToggle: function (x, y, fireEvents) {
@@ -151,9 +153,8 @@
                     this.qt = 0;
                     this.currIdx = -1;
                     $(opts.bookmarkClass, $contentDiv).remove();
-                    if (fireEvents && opts.bookmarkEvents.onChangePrevNext) {
-                        opts.bookmarkEvents.onChangePrevNext(false, false);
-                        opts.bookmarkEvents.onChangePrevNext(true, false);
+                    if (fireEvents) {
+                        this.checkEvents();
                     }
                 },
                 clearAll: function () {
@@ -174,12 +175,12 @@
                     }
                     var success = this.go(this.currIdx);
                     if (success) {
-                        if (opts.bookmarkEvents.onChangePrevNext) {
+                        if (opts.onChangeCtrlState) {
                             if (this.currIdx === 0) {
-                                opts.bookmarkEvents.onChangePrevNext(false, false);
+                                opts.onChangeCtrlState('prev', false);
                             }
                             if (this.currIdx === this.qt - 1) {
-                                opts.bookmarkEvents.onChangePrevNext(true, true);
+                                opts.onChangeCtrlState('next', true);
                             }
                         }
                         --this.currIdx;
@@ -194,12 +195,12 @@
                     }
                     var success = this.go(this.currIdx);
                     if (success) {
-                        if (opts.bookmarkEvents.onChangePrevNext) {
+                        if (opts.onChangeCtrlState) {
                             if (this.currIdx === 0) {
-                                opts.bookmarkEvents.onChangePrevNext(false, true);
+                                opts.onChangeCtrlState('prev', true);
                             }
                             if (this.currIdx === this.qt - 1) {
-                                opts.bookmarkEvents.onChangePrevNext(true, false);
+                                opts.onChangeCtrlState('next', false);
                             }
                         }
                         ++this.currIdx;
@@ -211,7 +212,7 @@
                 isMarked: function () {
                     return $.inArray(content.$obj.scrollLeft() + "#" + content.$obj.scrollTop(), this.marks) > -1;
                 },
-                parseLoad: function(bookmarks) {
+                parseLoad: function (bookmarks) {
                     var list = [];
                     if (bookmarks) {
                         if (bookmarks instanceof Array) {
@@ -222,7 +223,7 @@
                                         var pair = elem.split('#');
                                     } catch (er) {
                                         pair = null; // elem is not a string. Will throw the exception below
-                                    }      
+                                    }
                                     if (pair && pair.length === 2) {
                                         var pnt = [parseInt(pair[0]), parseInt(pair[1])];
                                         if (!isNaN(pnt[0]) && !isNaN(pnt[1])) {
@@ -231,19 +232,19 @@
                                         }
                                     }
                                 }
-                                throw 'Invalid element ' + elem + ' at index ' + i + '. Expected a "x#y" string object, where x and y are integers';
+                                throw 'Invalid element ' + elem + ' at index ' + i + '. Expected a "x#y" string object, where x and y are integers. Example: ["0#0","40#80","40#300"]';
                             }
                         } else {
-                            throw 'Expected a list of strings "x#y", where x and y are integers';
-                        }                        
+                            throw 'Expected an array of strings "x#y", where x and y are integers. Example: ["0#0","40#80","40#300"]';
+                        }
                     }
                     return list;
                 },
-                loadMarks: function(bookmarks) {
+                loadMarks: function (bookmarks) {
                     try {
                         var loaded = this.parseLoad(bookmarks);
                         this.doClearAll(false);
-                        for(var i in loaded) {
+                        for (var i in loaded) {
                             this.doToggle(loaded[i][0], loaded[i][1], false);
                         }
                         onResize(); // to correctly render the marks
@@ -331,8 +332,8 @@
                     });
                 }
 
-                if (opts.bookmarkClass && opts.bookmarkEvents.onChangeToggle) {
-                    opts.bookmarkEvents.onChangeToggle(bookmarkUtil.isMarked());
+                if (opts.bookmarkClass && opts.onChangeToggle) {
+                    opts.onChangeToggle(bookmarkUtil.isMarked());
                 }
             },
             onBookmarkToggle = function (event) {
@@ -355,14 +356,26 @@
                     bookmarkUtil.gotoNext();
                 }
             },
-            onBookmarkLoadMarks = function (event, bookmList) {
-                if (opts.bookmarkClass) {
-                    bookmarkUtil.loadMarks(bookmList);
+            onGetter = function (event, field) {
+                switch (field) {
+                    case 'bookmarks': return bookmarkUtil.marks;
+                    case 'readonly': return opts.readonly;
                 }
-            },            
-
+                return null;
+            },
+            onSetter = function (event, field, value) {
+                switch (field) {
+                    case 'bookmarks':
+                        if (opts.bookmarkClass) {
+                            bookmarkUtil.loadMarks(value);
+                        }
+                        break;
+                    case 'readonly':
+                        opts.readonly = value;
+                }
+                return onGetter(event, field);
+            },
             init = function () {
-
                 // elements being monitorized for scroll and resize events
                 viewport.$obj = $(opts.viewport);
                 if (opts.viewport === window) {
@@ -379,66 +392,73 @@
                 });
 
                 $viewportDiv.mousedown(function (e) {
-                    var dragInfo = {
-                        initPos: $viewportDiv.offset(),
-                        initClick: {
-                            X: e.pageX,
-                            Y: e.pageY
-                        }
-                    };
+                    if (!opts.readonly) {
+                        var dragInfo = {
+                            initPos: $viewportDiv.offset(),
+                            initClick: {
+                                X: e.pageX,
+                                Y: e.pageY
+                            }
+                        };
 
-                    // prevents text selection during drag
-                    this.onselectstart = function () {
-                        return false;
-                    };
+                        // prevents text selection during drag
+                        this.onselectstart = function () {
+                            return false;
+                        };
 
-                    $viewportDiv.bind('mousemove.rsOverview', function (e) {
-                        var pos = [$element.position(), $contentDiv.position()];
-                        viewport.$obj.
-                            scrollLeft(cache.coef * (e.pageX - dragInfo.initClick.X + dragInfo.initPos.left - pos[0].left - pos[1].left)).
-                            scrollTop(cache.coef * (e.pageY - dragInfo.initClick.Y + dragInfo.initPos.top - pos[0].top - pos[1].top));
-                    });
-                    e.preventDefault();
+                        $viewportDiv.bind('mousemove.rsOverview', function (e) {
+                            var pos = [$element.position(), $contentDiv.position()];
+                            viewport.$obj.
+                                    scrollLeft(cache.coef * (e.pageX - dragInfo.initClick.X + dragInfo.initPos.left - pos[0].left - pos[1].left)).
+                                    scrollTop(cache.coef * (e.pageY - dragInfo.initClick.Y + dragInfo.initPos.top - pos[0].top - pos[1].top));
+                        });
+                        e.preventDefault();
+                    }
                 });
 
                 // the mouseup event might happen outside the plugin, so to make sure the unbind always runs, it must done on body level
                 $("body").mouseup(function () {
-                    $viewportDiv.unbind('mousemove.rsOverview');
+                    if (!opts.readonly) {
+                        $viewportDiv.unbind('mousemove.rsOverview');
+                    }
                 });
 
                 // mouse click on the content: scroll jumps directly to that position
                 $contentDiv.mousedown(function (e) {
-                    var $pos = [$element.position(), $(this).position()];
-                    if (opts.viewport === window) {
-                        var fromPnt = [$("html").scrollLeft(), $("html").scrollTop()],
-                            toPnt = [
-                                cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
-                                cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
-                            ],
-                            supportsHtml = (fromPnt[0] != 0 || fromPnt[1] != 0);
+                    if (!opts.readonly) {
+                        var $pos = [$element.position(), $(this).position()];
+                        if (opts.viewport === window) {
+                            var fromPnt = [$("html").scrollLeft(), $("html").scrollTop()],
+                                toPnt = [
+                                    cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
+                                    cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
+                                ],
+                                supportsHtml = (fromPnt[0] != 0 || fromPnt[1] != 0);
 
-                        if (fromPnt[0] === 0 && fromPnt[1] === 0) {
-                            fromPnt[0] = $("body").scrollLeft();
-                            fromPnt[1] = $("body").scrollTop();
+                            if (fromPnt[0] === 0 && fromPnt[1] === 0) {
+                                fromPnt[0] = $("body").scrollLeft();
+                                fromPnt[1] = $("body").scrollTop();
+                            }
+                            $("html,body").animate({ scrollLeft: toPnt[0], scrollTop: toPnt[1] }, opts.scrollSpeed);
+
+                        } else {
+                            viewport.$obj.animate({
+                                scrollLeft: cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
+                                scrollTop: cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
+                            }, opts.scrollSpeed);
                         }
-                        $("html,body").animate({ scrollLeft: toPnt[0], scrollTop: toPnt[1] }, opts.scrollSpeed);
-
-                    } else {
-                        viewport.$obj.animate({
-                            scrollLeft: cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
-                            scrollTop: cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
-                        }, opts.scrollSpeed);
+                        e.preventDefault();
                     }
-                    e.preventDefault();
                 });
                 $element.
-                    bind('resize.rsOverview', onResize).
-                    bind('render.rsOverview', onRender).
-                    bind('bookmarkToggle.rsOverview', onBookmarkToggle).
-                    bind('bookmarkClearAll.rsOverview', onBookmarkClearAll).
-                    bind('bookmarkGotoPrev.rsOverview', onBookmarkGotoPrev).
-                    bind('bookmarkGotoNext.rsOverview', onBookmarkGotoNext).
-                    bind('bookmarkLoadMarks.rsOverview', onBookmarkLoadMarks);
+                        bind('resize.rsOverview', onResize).
+                        bind('render.rsOverview', onRender).
+                        bind('bookmarkToggle.rsOverview', onBookmarkToggle).
+                        bind('bookmarkClearAll.rsOverview', onBookmarkClearAll).
+                        bind('bookmarkGotoPrev.rsOverview', onBookmarkGotoPrev).
+                        bind('bookmarkGotoNext.rsOverview', onBookmarkGotoNext).
+                        bind('getter.rsOverview', onGetter).
+                        bind('setter.rsOverview', onSetter);
 
                 // graphical initialization when plugin is called (after page and DOM are loaded)
                 $element.trigger('resize.rsOverview');
@@ -465,23 +485,31 @@
         },
         bookmarkLoadMarks = function (bookmList) {
             return this.trigger('bookmarkLoadMarks.rsOverview', [bookmList]);
+        },
+        option = function (options) {
+            if (typeof arguments[0] == 'string') {
+                var op = arguments.length == 1 ? 'getter' : (arguments.length == 2 ? 'setter' : null);
+                if (op != null) {
+                    return this.eq(0).triggerHandler(op + '.rsOverview', arguments);
+                }
+            }
         };
 
         if (typeof options == 'string') {
             var otherArgs = Array.prototype.slice.call(arguments, 1);
             switch (options) {
-                case 'contentSizeChanged':  return contentSizeChanged.apply(this);
-                case 'bookmarkToggle':      return bookmarkToggle.apply(this);
-                case 'bookmarkClearAll':    return bookmarkClearAll.apply(this);
-                case 'bookmarkGotoPrev':    return bookmarkGotoPrev.apply(this);
-                case 'bookmarkGotoNext':    return bookmarkGotoNext.apply(this);
-                case 'bookmarkLoadMarks':   return bookmarkLoadMarks.apply(this, otherArgs);
+                case 'contentSizeChanged': return contentSizeChanged.apply(this);
+                case 'bookmarkToggle': return bookmarkToggle.apply(this);
+                case 'bookmarkClearAll': return bookmarkClearAll.apply(this);
+                case 'bookmarkGotoPrev': return bookmarkGotoPrev.apply(this);
+                case 'bookmarkGotoNext': return bookmarkGotoNext.apply(this);
+                case 'bookmarkLoadMarks': return bookmarkLoadMarks.apply(this, otherArgs);
+                case 'option': return option.apply(this, otherArgs);
                 default: return this;
             }
         }
 
         var opts = $.extend({}, $.fn.rsOverview.defaults, options);
-        opts.bookmarkEvents = $.extend({}, $.fn.rsOverview.defaults.bookmarkEvents, options ? options.bookmarkEvents : options);
 
         // returns the size of a vertical/horizontal scroll bar in pixels
         getScrollbarSize = function () {
@@ -510,12 +538,11 @@
         viewport: window,
         center: true,
         autoHide: false,
+        readonly: false,
         scrollSpeed: 'medium',
         bookmarkClass: '.bookm',
-        bookmarkEvents: {
-            onChangePrevNext: null, // function(isNextBtn, enabled)
-            onChangeToggle: null    // function(isDown)
-        }
+        onChangeCtrlState: null, // function(kind, enabled)
+        onChangeToggle: null     // function(isDown)
     };
 
 })(jQuery);
