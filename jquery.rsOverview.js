@@ -100,40 +100,7 @@
                     var k = key.split("#");
                     return [parseInt(k[0]), parseInt(k[1])];
                 },
-                toggle: function () {
-                    var key = content.$obj.scrollLeft() + "#" + content.$obj.scrollTop(),
-                        idx = this.marks.indexOf(key);
-                    if (idx === -1) {
-                        this.marks.push(key); // append
-                        var pos = [$viewportDiv.position().left - $contentDiv.position().left,
-                                   $viewportDiv.position().top - $contentDiv.position().top],
-                            half = [$viewportDiv.width() / 2, $viewportDiv.height() / 2],
-                            $bookm = $("<div />").
-                                addClass(opts.bookmarkClass.replace(/^[.]/, '')). // if opts.bookmarkClass string starts with a period, then remove it
-                                appendTo($contentDiv);
-                        var size = [$bookm.width(), $bookm.height()];
-                        if (size[0] == 0) { // user did not defined a css width?
-                            $bookm.css('width', '1px');
-                            size[0] = 1;
-                        }
-                        if (size[1] == 0) { // user did not defined a css height?
-                            $bookm.css('height', '1px');
-                            size[1] = 1;
-                        }
-                        $bookm.css({
-                            'position': 'absolute',
-                            'left': (pos[0] + half[0] - size[0] / 2) + 'px',
-                            'top': (pos[1] + half[1] - size[1] / 2) + 'px'
-                        });
-                        this.qt = this.marks.length;
-                        this.currIdx = this.qt - 1;
-                    } else {
-                        this.marks.splice(idx, 1); // delete
-                        $(opts.bookmarkClass + ":eq(" + idx + ")", $contentDiv).remove();
-                        this.qt = this.marks.length;
-                        this.currIdx = idx;
-                    }
-
+                checkEvents: function () {
                     if (opts.bookmarkEvents.onChangePrevNext) {
                         if (this.currIdx === -1) {
                             opts.bookmarkEvents.onChangePrevNext(false, false);
@@ -147,15 +114,50 @@
                         opts.bookmarkEvents.onChangeToggle(this.isMarked());
                     }
                 },
-                clearAll: function () {
+                doToggle: function (x, y, fireEvents) {
+                    var key = x + "#" + y,
+                        idx = $.inArray(key, this.marks);
+                    if (idx === -1) {
+                        this.marks.push(key); // append
+                        var pos = [$viewportDiv.position().left - $contentDiv.position().left,
+                                   $viewportDiv.position().top - $contentDiv.position().top],
+                            half = [$viewportDiv.width() / 2, $viewportDiv.height() / 2],
+                            $bookm = $("<div />").
+                                addClass(opts.bookmarkClass.replace(/^[.]/, '')). // if opts.bookmarkClass string starts with a period, then remove it
+                                appendTo($contentDiv);
+                        var size = [$bookm.width(), $bookm.height()];
+                        $bookm.css({
+                            'position': 'absolute',
+                            'left': (pos[0] + half[0] - size[0] / 2).toFixed(0) + 'px',
+                            'top': (pos[1] + half[1] - size[1] / 2).toFixed(0) + 'px'
+                        });
+                        this.qt = this.marks.length;
+                        this.currIdx = this.qt - 1;
+                    } else {
+                        this.marks.splice(idx, 1); // delete
+                        $(opts.bookmarkClass + ":eq(" + idx + ")", $contentDiv).remove();
+                        this.qt = this.marks.length;
+                        this.currIdx = idx;
+                    }
+                    if (fireEvents) {
+                        this.checkEvents();
+                    }
+                },
+                toggle: function () {
+                    this.doToggle(content.$obj.scrollLeft(), content.$obj.scrollTop(), true);
+                },
+                doClearAll: function (fireEvents) {
                     this.marks.length = 0;
                     this.qt = 0;
                     this.currIdx = -1;
                     $(opts.bookmarkClass, $contentDiv).remove();
-                    if (opts.bookmarkEvents.onChangePrevNext) {
+                    if (fireEvents && opts.bookmarkEvents.onChangePrevNext) {
                         opts.bookmarkEvents.onChangePrevNext(false, false);
                         opts.bookmarkEvents.onChangePrevNext(true, false);
                     }
+                },
+                clearAll: function () {
+                    this.doClearAll(true);
                 },
                 go: function (idx) {
                     if (idx > -1 && idx < this.qt) {
@@ -207,7 +209,53 @@
                     return success;
                 },
                 isMarked: function () {
-                    return this.marks.indexOf(content.$obj.scrollLeft() + "#" + content.$obj.scrollTop()) > -1;
+                    return $.inArray(content.$obj.scrollLeft() + "#" + content.$obj.scrollTop(), this.marks) > -1;
+                },
+                parseLoad: function(bookmarks) {
+                    var list = [];
+                    if (bookmarks) {
+                        if (bookmarks instanceof Array) {
+                            for (var i in bookmarks) {
+                                var elem = bookmarks[i];
+                                if (elem) {
+                                    try {
+                                        var pair = elem.split('#');
+                                    } catch (er) {
+                                        pair = null; // elem is not a string. Will throw the exception below
+                                    }      
+                                    if (pair && pair.length === 2) {
+                                        var pnt = [parseInt(pair[0]), parseInt(pair[1])];
+                                        if (!isNaN(pnt[0]) && !isNaN(pnt[1])) {
+                                            list.push(pnt);
+                                            continue;
+                                        }
+                                    }
+                                }
+                                throw 'Invalid element ' + elem + ' at index ' + i + '. Expected a "x#y" string object, where x and y are integers';
+                            }
+                        } else {
+                            throw 'Expected a list of strings "x#y", where x and y are integers';
+                        }                        
+                    }
+                    return list;
+                },
+                loadMarks: function(bookmarks) {
+                    try {
+                        var loaded = this.parseLoad(bookmarks);
+                        this.doClearAll(false);
+                        for(var i in loaded) {
+                            this.doToggle(loaded[i][0], loaded[i][1], false);
+                        }
+                        onResize(); // to correctly render the marks
+                        this.checkEvents();
+                    } catch (er) {
+                        var msg = 'rsOverview.loadMarks(): ' + er;
+                        if (window.console) {
+                            console.error(msg);
+                        } else {
+                            alert(msg);
+                        }
+                    }
                 }
             },
 
@@ -307,6 +355,11 @@
                     bookmarkUtil.gotoNext();
                 }
             },
+            onBookmarkLoadMarks = function (event, bookmList) {
+                if (opts.bookmarkClass) {
+                    bookmarkUtil.loadMarks(bookmList);
+                }
+            },            
 
             init = function () {
 
@@ -384,7 +437,8 @@
                     bind('bookmarkToggle.rsOverview', onBookmarkToggle).
                     bind('bookmarkClearAll.rsOverview', onBookmarkClearAll).
                     bind('bookmarkGotoPrev.rsOverview', onBookmarkGotoPrev).
-                    bind('bookmarkGotoNext.rsOverview', onBookmarkGotoNext);
+                    bind('bookmarkGotoNext.rsOverview', onBookmarkGotoNext).
+                    bind('bookmarkLoadMarks.rsOverview', onBookmarkLoadMarks);
 
                 // graphical initialization when plugin is called (after page and DOM are loaded)
                 $element.trigger('resize.rsOverview');
@@ -408,15 +462,20 @@
         },
         bookmarkGotoNext = function () {
             return this.trigger('bookmarkGotoNext.rsOverview');
+        },
+        bookmarkLoadMarks = function (bookmList) {
+            return this.trigger('bookmarkLoadMarks.rsOverview', [bookmList]);
         };
 
         if (typeof options == 'string') {
+            var otherArgs = Array.prototype.slice.call(arguments, 1);
             switch (options) {
-                case 'contentSizeChanged': return contentSizeChanged.apply(this);
-                case 'bookmarkToggle': return bookmarkToggle.apply(this);
-                case 'bookmarkClearAll': return bookmarkClearAll.apply(this);
-                case 'bookmarkGotoPrev': return bookmarkGotoPrev.apply(this);
-                case 'bookmarkGotoNext': return bookmarkGotoNext.apply(this);
+                case 'contentSizeChanged':  return contentSizeChanged.apply(this);
+                case 'bookmarkToggle':      return bookmarkToggle.apply(this);
+                case 'bookmarkClearAll':    return bookmarkClearAll.apply(this);
+                case 'bookmarkGotoPrev':    return bookmarkGotoPrev.apply(this);
+                case 'bookmarkGotoNext':    return bookmarkGotoNext.apply(this);
+                case 'bookmarkLoadMarks':   return bookmarkLoadMarks.apply(this, otherArgs);
                 default: return this;
             }
         }
