@@ -278,8 +278,8 @@
                     var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
                         $bookm = $(opts.bookmarkClass + ":eq(" + i + ")", $contentDiv);
                     $bookm.css({
-                        'left': ((calcWidth - $bookm.width()) / 2 + (pnt[0] / cache.coef)).toFixed(1) + 'px',
-                        'top': ((calcHeight - $bookm.height()) / 2 + (pnt[1] / cache.coef)).toFixed(1) + 'px'
+                        'left': ((calcWidth - $bookm.outerWidth()) / 2 + (pnt[0] / cache.coef)).toFixed(1) + 'px',
+                        'top': ((calcHeight - $bookm.outerHeight()) / 2 + (pnt[1] / cache.coef)).toFixed(1) + 'px'
                     });
                 }
 
@@ -417,6 +417,7 @@
                 case 'bookmarkClearAll': return bookmarkClearAll.apply(this);
                 case 'bookmarkGotoPrev': return bookmarkGotoPrev.apply(this);
                 case 'bookmarkGotoNext': return bookmarkGotoNext.apply(this);
+                default: return this;
             }
         }
 
