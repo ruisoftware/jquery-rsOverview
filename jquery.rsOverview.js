@@ -169,48 +169,52 @@
                     }
                     return false;
                 },
-                gotoPrev: function () {
+                beforeGo: function (offset) {
+                    var idx = this.getMarkedIdx();
+                    if (idx !== -1) {
+                        this.currIdx = idx + offset;
+                    }
+
+                    if (this.currIdx < 0) {
+                        this.currIdx = 0;
+                    }
                     if (this.currIdx > this.qt - 1) {
                         this.currIdx = this.qt - 1;
                     }
+                },
+                gotoPrev: function () {
+                    this.beforeGo(-1);
                     var success = this.go(this.currIdx);
                     if (success) {
                         if (opts.onChangeCtrlState) {
                             if (this.currIdx === 0) {
                                 opts.onChangeCtrlState('prev', false);
                             }
-                            if (this.currIdx === this.qt - 1) {
-                                opts.onChangeCtrlState('next', true);
-                            }
+                            opts.onChangeCtrlState('next', true);
                         }
                         --this.currIdx;
-                    } else {
-                        ++this.currIdx;
                     }
                     return success;
                 },
                 gotoNext: function () {
-                    if (this.currIdx < 0) {
-                        this.currIdx = 0;
-                    }
+                    this.beforeGo(+1);
                     var success = this.go(this.currIdx);
                     if (success) {
                         if (opts.onChangeCtrlState) {
-                            if (this.currIdx === 0) {
-                                opts.onChangeCtrlState('prev', true);
-                            }
                             if (this.currIdx === this.qt - 1) {
                                 opts.onChangeCtrlState('next', false);
                             }
-                        }
+                            opts.onChangeCtrlState('prev', true);
+                        }                        
                         ++this.currIdx;
-                    } else {
-                        --this.currIdx;
                     }
                     return success;
                 },
+                getMarkedIdx: function () {
+                    return $.inArray(content.$obj.scrollLeft() + "#" + content.$obj.scrollTop(), this.marks);
+                },
                 isMarked: function () {
-                    return $.inArray(content.$obj.scrollLeft() + "#" + content.$obj.scrollTop(), this.marks) > -1;
+                    return this.getMarkedIdx() > -1;
                 },
                 parseLoad: function (bookmarks) {
                     var list = [];
@@ -285,6 +289,10 @@
                         return;
                     }
                     $element.show();
+                } else {
+                    if ($element.is(':hidden')) {
+                        $element.show();
+                    }
                 }
 
                 var elementSize = {
@@ -300,13 +308,10 @@
                 // compute inner DIV size that corresponds to the size of the content being monitored
                 var calcWidth = content.sizeX / cache.coef,
                     calcHeight = content.sizeY / cache.coef;
-                $contentDiv.width(calcWidth).height(calcHeight);
-                if (opts.center) {
-                    $contentDiv.css({
-                        'left': ((elementSize.x - calcWidth) / 2).toFixed(1) + 'px',
-                        'top': ((elementSize.y - calcHeight) / 2).toFixed(1) + 'px'
-                    });
-                }
+                $contentDiv.width(calcWidth).height(calcHeight).css({
+                    'left': (opts.center ? (elementSize.x - calcWidth) / 2 : 0).toFixed(1) + 'px',
+                    'top': (opts.center ? (elementSize.y - calcHeight) / 2 : 0).toFixed(1) + 'px'
+                });
 
                 $element.trigger('render.rsOverview');
             },
@@ -360,6 +365,9 @@
                 switch (field) {
                     case 'bookmarks': return bookmarkUtil.marks;
                     case 'readonly': return opts.readonly;
+                    case 'center': return opts.center;
+                    case 'autoHide': return opts.autoHide;
+                    case 'scrollSpeed': return opts.scrollSpeed;
                 }
                 return null;
             },
@@ -370,8 +378,18 @@
                             bookmarkUtil.loadMarks(value);
                         }
                         break;
-                    case 'readonly':
+                    case 'readonly': 
                         opts.readonly = value;
+                        break;
+                    case 'center': 
+                        opts.center = value;
+                        $element.trigger('resize.rsOverview');
+                        break;
+                    case 'autoHide': 
+                        opts.autoHide = value; 
+                        $element.trigger('resize.rsOverview');
+                        break;
+                    case 'scrollSpeed': opts.scrollSpeed = value;
                 }
                 return onGetter(event, field);
             },
@@ -458,7 +476,8 @@
                         bind('bookmarkGotoPrev.rsOverview', onBookmarkGotoPrev).
                         bind('bookmarkGotoNext.rsOverview', onBookmarkGotoNext).
                         bind('getter.rsOverview', onGetter).
-                        bind('setter.rsOverview', onSetter);
+                        bind('setter.rsOverview', onSetter).
+                        css('overflow', 'hidden');
 
                 // graphical initialization when plugin is called (after page and DOM are loaded)
                 $element.trigger('resize.rsOverview');

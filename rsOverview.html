@@ -11,7 +11,6 @@
         $(function () {
             // plug-in for document
             $("#overviewDoc").rsOverview({
-                readonly: true,
                 // event fired when a control - usually a button - needs to change to an enable/disable state
                 onChangeCtrlState: function (kind, enabled) {
                     // kind is one of these strings: 'prev' or 'next' or 'clear'
@@ -54,9 +53,8 @@
                 $("#overviewDoc").rsOverview('contentSizeChanged');
             });
             $("#btnDoc_del").click(function () {
-                //$("body > p:last-child").remove();
-                //$("#overviewDoc").rsOverview('contentSizeChanged');
-                alert($("#overviewDoc").rsOverview('option', 'readonly', false));
+                $("body > p:last-child").remove();
+                $("#overviewDoc").rsOverview('contentSizeChanged');
             });
 
 
@@ -155,7 +153,7 @@
         <button id="btnOvr_del">Remove some content</button>
     </fieldset>
 
-    To get a felling of what is this all about, please do the following:
+    <p>To get a felling of what is this all about, please do the following:</p>
     <ul>
         <li>Basic stuff
             <ul>
