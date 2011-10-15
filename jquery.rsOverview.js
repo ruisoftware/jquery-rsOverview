@@ -409,8 +409,8 @@
                 var calcWidth = content.sizeX / cache.coef,
                     calcHeight = content.sizeY / cache.coef;
                 $contentDiv.width(calcWidth).height(calcHeight).css({
-                    'left': (opts.center ? (elementSize.x - calcWidth) / 2 : 0).toFixed(1) + 'px',
-                    'top': (opts.center ? (elementSize.y - calcHeight) / 2 : 0).toFixed(1) + 'px'
+                    'left': (opts.center ? (elementSize.x - calcWidth) / 2 : 0).toFixed(0) + 'px',
+                    'top': (opts.center ? (elementSize.y - calcHeight) / 2 : 0).toFixed(0) + 'px'
                 });
 
                 $element.trigger('render.rsOverview');
@@ -568,6 +568,7 @@
                         e.preventDefault();
                     }
                 });
+                $contentDiv.css('overflow', 'hidden');
                 $element.
                         bind('resize.rsOverview', onResize).
                         bind('render.rsOverview', onRender).
@@ -576,8 +577,8 @@
                         bind('bookmarkGotoPrev.rsOverview', onBookmarkGotoPrev).
                         bind('bookmarkGotoNext.rsOverview', onBookmarkGotoNext).
                         bind('getter.rsOverview', onGetter).
-                        bind('setter.rsOverview', onSetter).
-                        css('overflow', 'hidden');
+                        bind('setter.rsOverview', onSetter);
+
 
                 // graphical initialization when plugin is called (after page and DOM are loaded)
                 $element.trigger('resize.rsOverview');
