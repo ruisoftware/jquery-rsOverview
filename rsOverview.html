@@ -12,7 +12,7 @@
             // plug-in for document
             $("#overviewDoc").rsOverview({
                 // event fired when a control - usually a button - needs to change to an enable/disable state
-                onChangeCtrlState: function (kind, enabled) {
+                onChangeCtrlState: function (event, kind, enabled) {
                     // kind is one of these strings: 'prev' or 'next' or 'clear'
                     if (enabled) {
                         $("#btnDocBookM_" + kind).removeAttr("disabled");
@@ -25,7 +25,7 @@
             // plug-in for overflowed element
             $("#overviewDiv").rsOverview({
                 viewport: $("#overflowed"),
-                onChangeCtrlState: function (kind, enabled) {
+                onChangeCtrlState: function (event, kind, enabled) {
                     if (enabled) {
                         $("#btnOvrBookM_" + kind).removeAttr("disabled");
                     } else {
@@ -102,7 +102,7 @@
 
     <h2>What it is?</h2>
     <p>This plug-in provides an overview of the whole page the user.<br />
-    It renders two rectangles, one inside another. The smallest one represents the viewport, what the user is currently seeing. The biggest rectangle, represents the entire document area.<br />
+    It renders two rectangles, one inside another. The darkest one represents the viewport, what the user is currently seeing. The lightest rectangle, represents the entire document area.<br />
     This allows anyone to quickly jump to any position within the document, bookmark several locations and visit them later on.</p>
     <p>It provides methods to load/save all bookmarks between page transitions, so that your users can get their bookmarks back everytime they return to an old page.</p>
 

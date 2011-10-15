@@ -5,42 +5,34 @@
 *
 * Licensed under The MIT License
 * 
-* @version   0.1
+* @version   2
 * @since     11.27.2010
 * @author    Jose Rui Santos
 *
-* 
-* Input parameter  Default value  Remarks
-* ================ =============  ===============================================================================================
-* viewport:        window         The element being monitored by the plug-in.
-* center:          true           Whether to center the rendering of the inner DIVs relatively to the outer DIV.
-* autoHide:        false          Whether to hide the plug-in when the content has the same size or is smaller than the viewport.
-* scrollSpeed:     'medium'       Speed used when moving to a selected canvas position   
+* Input parameter    Default value  Remarks
+* =================  =============  ===============================================================================================
+* viewport           window         The element being monitored by the plug-in.
+* center             true           Whether to center the rendering of the inner DIVs relatively to the outer DIV.
+* autoHide           false          Whether to hide the plug-in when the content has the same size or is smaller than the viewport.
+* scrollSpeed        'medium'       Speed used when moving to a selected canvas position or when moving to a bookmark.
+* readonly           false          False: Reacts to mouse events; True: Ignores mouse events
+* bookmarkClass      '.bookm'       CSS selector class for the bookmarks. Typically should be 1x1 or 3x3 px square with a distinct background color or border
+* onChangeCtrlState  null           Event fired when the prev/next/clearAll controls - typically buttons - needs to be disabled/enabled 
+* onChangeToggle     null           Event fired when the toggle control - typically a button - needs to be pushed down or up
+* If you prefer not to use bookmarks, then just set bookmarkClass to null.
 *
-* Alternatively, you can define default values only once, and then use thoughout all the rsOverview calls.
+* Alternatively, you can define default values only once, and then use thoughout all the rsOverview instances.
 * To define defaults values use the $.fn.rsOverview.defaults, e.g.
 * $.fn.rsOverview.defaults.scrollSpeed = 300;
 * $.fn.rsOverview.defaults.autoHide = true;
 *
-* If the size of the content element that is being monited changes, the plug-in must be notified with a call to
-* $(element).rsOverview('contentSizeChanged');
-* Example:
-* You have the following markup being used by the plug-in to monitor the document.
-* <div id="overview">
-*   <div></div>
-*   <div></div>
-* </div>
-* If the document size changes, then the following call must be made:
-* $("#overview").rsOverview('contentSizeChanged');
-* This will render the plug-in to the correct area size.
-
 * Usage with default values:
 * ==========================
 * $('#overview').rsOverview();
 *
 * <div id="overview">
-*   <div></div>
-*   <div></div>
+*   <div class="content"></div>
+*   <div class="viewport"></div>
 * </div>
 *
 * #overview {
@@ -49,10 +41,21 @@
 *     height: 300px;
 * }
 *
-* #overview div {
+* .content,
+* .viewport {
 *     position: absolute;
 * }
 *
+* If the size of the content element that is being monited changes, the plug-in must be notified with a call to 'contentSizeChanged' method.
+* Example:
+* You have the following markup being used by the plug-in to monitor the document.
+*    <div id="overview">
+*        <div class="content"></div>
+*        <div class="viewport"></div>
+*    </div>
+* If the document size changes, then the following call must be made:
+* $("#overview").rsOverview('contentSizeChanged');
+* This will render the plug-in to the correct area size.
 */
 (function ($) {
     var OverviewClass = function ($element, opts, scrollbarPixels) {
@@ -93,30 +96,59 @@
             },
 
             bookmarkUtil = {
+                states: {
+                    // states are null(initial state), true or false
+                    toggle: null,
+                    triggerToggle: function (event, newToggle) {
+                        if (opts.onChangeToggle && newToggle !== this.toggle) {
+                            this.toggle = newToggle;
+                            opts.onChangeToggle(event, this.toggle);
+                        }
+                    },
+                    prev: null,
+                    triggerPrev: function (event, newPrev) {
+                        if (opts.onChangeCtrlState && newPrev !== this.prev) {
+                            this.prev = newPrev;
+                            opts.onChangeCtrlState(event, 'prev', this.prev);
+                        }
+                    },
+                    next: null,
+                    triggerNext: function (event, newNext) {
+                        if (opts.onChangeCtrlState && newNext !== this.next) {
+                            this.next = newNext;
+                            opts.onChangeCtrlState(event, 'next', this.next);
+                        }
+                    },
+                    clearAll: null,
+                    triggerClearAll: function (event, newClearAll) {
+                        if (opts.onChangeCtrlState && newClearAll !== this.clearAll) {
+                            this.clearAll = newClearAll;
+                            opts.onChangeCtrlState(event, 'clear', this.clearAll);
+                        }
+                    }
+                },
                 currIdx: 0,
                 qt: 0,
                 marks: [],
                 getPnt: function (key) {
                     var k = key.split("#");
-                    return [parseInt(k[0]), parseInt(k[1])];
+                    return [parseInt(k[0], 10), parseInt(k[1], 10)];
                 },
-                checkEvents: function () {
+                checkEvents: function (event) {
                     if (opts.onChangeCtrlState) {
                         if (this.currIdx === -1) {
-                            opts.onChangeCtrlState('prev', false);
-                            opts.onChangeCtrlState('next', false);
-                            opts.onChangeCtrlState('clear', false);
+                            this.states.triggerPrev(event, false);
+                            this.states.triggerNext(event, false);
+                            this.states.triggerClearAll(event, false);
                         } else {
-                            opts.onChangeCtrlState('prev', true);
-                            opts.onChangeCtrlState('next', this.currIdx < this.qt - 1);
-                            opts.onChangeCtrlState('clear', true);
+                            this.states.triggerPrev(event, true);
+                            this.states.triggerNext(event, this.currIdx < this.qt - 1);
+                            this.states.triggerClearAll(event, true);
                         }
                     }
-                    if (opts.onChangeToggle) {
-                        opts.onChangeToggle(this.isMarked());
-                    }
+                    this.states.triggerToggle(event, this.isMarked());
                 },
-                doToggle: function (x, y, fireEvents) {
+                doToggle: function (event, x, y) {
                     var key = x + "#" + y,
                         idx = $.inArray(key, this.marks);
                     if (idx === -1) {
@@ -127,7 +159,7 @@
                             $bookm = $("<div />").
                                 addClass(opts.bookmarkClass.replace(/^[.]/, '')). // if opts.bookmarkClass string starts with a period, then remove it
                                 appendTo($contentDiv);
-                        var size = [$bookm.width(), $bookm.height()];
+                        var size = [$bookm.outerWidth(), $bookm.outerHeight()];
                         $bookm.css({
                             'position': 'absolute',
                             'left': (pos[0] + half[0] - size[0] / 2).toFixed(0) + 'px',
@@ -139,26 +171,26 @@
                         this.marks.splice(idx, 1); // delete
                         $(opts.bookmarkClass + ":eq(" + idx + ")", $contentDiv).remove();
                         this.qt = this.marks.length;
-                        this.currIdx = idx;
+                        this.currIdx = idx - 1;
                     }
-                    if (fireEvents) {
-                        this.checkEvents();
+                    if (event) {
+                        this.checkEvents(event);
                     }
                 },
-                toggle: function () {
-                    this.doToggle(content.$obj.scrollLeft(), content.$obj.scrollTop(), true);
+                toggle: function (event) {
+                    this.doToggle(event, content.$obj.scrollLeft(), content.$obj.scrollTop());
                 },
-                doClearAll: function (fireEvents) {
+                doClearAll: function (event) {
                     this.marks.length = 0;
                     this.qt = 0;
                     this.currIdx = -1;
                     $(opts.bookmarkClass, $contentDiv).remove();
-                    if (fireEvents) {
-                        this.checkEvents();
+                    if (event) {
+                        this.checkEvents(event);
                     }
                 },
-                clearAll: function () {
-                    this.doClearAll(true);
+                clearAll: function (event) {
+                    this.doClearAll(event);
                 },
                 go: function (idx) {
                     if (idx > -1 && idx < this.qt) {
@@ -182,30 +214,30 @@
                         this.currIdx = this.qt - 1;
                     }
                 },
-                gotoPrev: function () {
+                gotoPrev: function (event) {
                     this.beforeGo(-1);
                     var success = this.go(this.currIdx);
                     if (success) {
                         if (opts.onChangeCtrlState) {
                             if (this.currIdx === 0) {
-                                opts.onChangeCtrlState('prev', false);
+                                this.states.triggerPrev(event, false);
                             }
-                            opts.onChangeCtrlState('next', true);
+                            this.states.triggerNext(event, true);
                         }
                         --this.currIdx;
                     }
                     return success;
                 },
-                gotoNext: function () {
+                gotoNext: function (event) {
                     this.beforeGo(+1);
                     var success = this.go(this.currIdx);
                     if (success) {
                         if (opts.onChangeCtrlState) {
                             if (this.currIdx === this.qt - 1) {
-                                opts.onChangeCtrlState('next', false);
+                                this.states.triggerNext(event, false);
                             }
-                            opts.onChangeCtrlState('prev', true);
-                        }                        
+                            this.states.triggerPrev(event, true);
+                        }
                         ++this.currIdx;
                     }
                     return success;
@@ -229,7 +261,7 @@
                                         pair = null; // elem is not a string. Will throw the exception below
                                     }
                                     if (pair && pair.length === 2) {
-                                        var pnt = [parseInt(pair[0]), parseInt(pair[1])];
+                                        var pnt = [parseInt(pair[0], 10), parseInt(pair[1], 10)];
                                         if (!isNaN(pnt[0]) && !isNaN(pnt[1])) {
                                             list.push(pnt);
                                             continue;
@@ -244,15 +276,15 @@
                     }
                     return list;
                 },
-                loadMarks: function (bookmarks) {
+                loadMarks: function (event, bookmarks) {
                     try {
                         var loaded = this.parseLoad(bookmarks);
-                        this.doClearAll(false);
+                        this.doClearAll(null);
                         for (var i in loaded) {
-                            this.doToggle(loaded[i][0], loaded[i][1], false);
+                            this.doToggle(null, loaded[i][0], loaded[i][1]);
                         }
-                        onResize(); // to correctly render the marks
-                        this.checkEvents();
+                        $element.trigger('resize.rsOverview'); // to correctly render the marks
+                        this.checkEvents(event);
                     } catch (er) {
                         var msg = 'rsOverview.loadMarks(): ' + er;
                         if (window.console) {
@@ -332,33 +364,33 @@
                     var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
                         $bookm = $(opts.bookmarkClass + ":eq(" + i + ")", $contentDiv);
                     $bookm.css({
-                        'left': ((calcWidth - $bookm.outerWidth()) / 2 + (pnt[0] / cache.coef)).toFixed(1) + 'px',
-                        'top': ((calcHeight - $bookm.outerHeight()) / 2 + (pnt[1] / cache.coef)).toFixed(1) + 'px'
+                        'left': ((calcWidth - $bookm.outerWidth()) / 2 + (pnt[0] / cache.coef)).toFixed(0) + 'px',
+                        'top': ((calcHeight - $bookm.outerHeight()) / 2 + (pnt[1] / cache.coef)).toFixed(0) + 'px'
                     });
                 }
 
-                if (opts.bookmarkClass && opts.onChangeToggle) {
-                    opts.onChangeToggle(bookmarkUtil.isMarked());
+                if (opts.bookmarkClass) {
+                    bookmarkUtil.states.triggerToggle(event, bookmarkUtil.isMarked());
                 }
             },
             onBookmarkToggle = function (event) {
                 if (opts.bookmarkClass) {
-                    bookmarkUtil.toggle();
+                    bookmarkUtil.toggle(event);
                 }
             },
             onBookmarkClearAll = function (event) {
                 if (opts.bookmarkClass) {
-                    bookmarkUtil.clearAll();
+                    bookmarkUtil.clearAll(event);
                 }
             },
             onBookmarkGotoPrev = function (event) {
                 if (opts.bookmarkClass) {
-                    bookmarkUtil.gotoPrev();
+                    bookmarkUtil.gotoPrev(event);
                 }
             },
             onBookmarkGotoNext = function (event) {
                 if (opts.bookmarkClass) {
-                    bookmarkUtil.gotoNext();
+                    bookmarkUtil.gotoNext(event);
                 }
             },
             onGetter = function (event, field) {
@@ -375,18 +407,18 @@
                 switch (field) {
                     case 'bookmarks':
                         if (opts.bookmarkClass) {
-                            bookmarkUtil.loadMarks(value);
+                            bookmarkUtil.loadMarks(event, value);
                         }
                         break;
-                    case 'readonly': 
+                    case 'readonly':
                         opts.readonly = value;
                         break;
-                    case 'center': 
+                    case 'center':
                         opts.center = value;
                         $element.trigger('resize.rsOverview');
                         break;
-                    case 'autoHide': 
-                        opts.autoHide = value; 
+                    case 'autoHide':
+                        opts.autoHide = value;
                         $element.trigger('resize.rsOverview');
                         break;
                     case 'scrollSpeed': opts.scrollSpeed = value;
@@ -560,8 +592,8 @@
         readonly: false,
         scrollSpeed: 'medium',
         bookmarkClass: '.bookm',
-        onChangeCtrlState: null, // function(kind, enabled)
-        onChangeToggle: null     // function(isDown)
+        onChangeCtrlState: null, // function(event, kind, enabled)
+        onChangeToggle: null     // function(event, isMarked)
     };
 
 })(jQuery);

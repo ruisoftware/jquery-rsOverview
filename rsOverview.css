@@ -2,16 +2,18 @@
 /************************/
 #overviewDoc {
     position: fixed;
+    width: 100px;
+    height: 150px;
 }
 
 #overviewDiv {
     position: absolute;
+    width: 80px;
+    height: 50px;
 }
 
-#overviewDoc .content,
-#overviewDoc .viewport,
-#overviewDiv .content,
-#overviewDiv .viewport {
+.content,
+.viewport {
     position: absolute;
 }
 
@@ -25,8 +27,6 @@ body {
 #overviewDoc {
     right: 20px;
     top: 20px;
-    width: 100px;
-    height: 150px;
     border: 1px dotted gray;
     z-index: 2;
 }
@@ -34,12 +34,9 @@ body {
 #overviewDiv {
     left: 230px;
     top: 460px;
-    width: 80px;
-    height: 50px;
 }
 
-#overviewDoc .content,
-#overviewDiv .content {
+.content {
     background-color: Orange;
     filter: alpha(opacity=40);
     -moz-opacity: 0.4;
@@ -52,8 +49,7 @@ body {
     background-color: Aqua;
 }
 
-#overviewDoc .viewport,
-#overviewDiv .viewport {
+.viewport {
     background-color: red;
     filter: alpha(opacity=50);
     -moz-opacity: 0.5;
