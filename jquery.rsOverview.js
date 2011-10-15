@@ -2,39 +2,28 @@
 * jQuery Overview - A viewport/content length overview
 * ====================================================
 * jQuery Overview displays two rectangles representing each one the content and the viewport.
+* Provides an overview of the whole page to the user.
 *
 * Licensed under The MIT License
 * 
-* @version   2
+* @version   3
 * @since     11.27.2010
 * @author    Jose Rui Santos
 *
-* Input parameter    Default value  Remarks
-* =================  =============  ===============================================================================================
-* viewport           window         The element being monitored by the plug-in.
-* center             true           Whether to center the rendering of the inner DIVs relatively to the outer DIV.
-* autoHide           false          Whether to hide the plug-in when the content has the same size or is smaller than the viewport.
-* scrollSpeed        'medium'       Speed used when moving to a selected canvas position or when moving to a bookmark.
-* readonly           false          False: Reacts to mouse events; True: Ignores mouse events
-* bookmarkClass      '.bookm'       CSS selector class for the bookmarks. Typically should be 1x1 or 3x3 px square with a distinct background color or border
-* onChangeCtrlState  null           Event fired when the prev/next/clearAll controls - typically buttons - needs to be disabled/enabled 
-* onChangeToggle     null           Event fired when the toggle control - typically a button - needs to be pushed down or up
-* If you prefer not to use bookmarks, then just set bookmarkClass to null.
-*
-* Alternatively, you can define default values only once, and then use thoughout all the rsOverview instances.
-* To define defaults values use the $.fn.rsOverview.defaults, e.g.
-* $.fn.rsOverview.defaults.scrollSpeed = 300;
-* $.fn.rsOverview.defaults.autoHide = true;
 *
 * Usage with default values:
 * ==========================
 * $('#overview').rsOverview();
 *
+* Markup
+* ==========================
 * <div id="overview">
 *   <div class="content"></div>
 *   <div class="viewport"></div>
 * </div>
 *
+* CSS
+* ==========================
 * #overview {
 *     position: fixed;
 *     width: 200px;
@@ -46,6 +35,79 @@
 *     position: absolute;
 * }
 *
+*
+* Input parameter    Default value  Remarks
+* =================  =============  ===============================================================================================
+* viewport           window         The element being monitored by the plug-in.
+* center             true           Whether to center the rendering of the inner DIVs relatively to the outer DIV.
+* autoHide           false          Whether to hide the plug-in when the content has the same size or is smaller than the viewport.
+* scrollSpeed        'medium'       Speed used when moving to a selected canvas position or when moving to a bookmark.
+* readonly           false          False: Reacts to mouse events; True: Ignores mouse events
+* bookmarkClass      '.bookm'       CSS selector class for the bookmarks. Typically should be 1x1 or 3x3 px square with a distinct background color or border
+* onChangeCtrlState  null           Event fired when the prev/next/clearAll controls - typically buttons - needs to be disabled/enabled 
+* onChangeToggle     null           Event fired when the toggle control - typically a button - needs to be pushed down or up
+* If you don't want to use bookmarks, then just set bookmarkClass to null (or do not call any bookmark related methods), e.g.
+  $('#overview').rsOverview({
+      bookmarkClass: null,
+      viewport: $("#memo")    // use this plug-in on an overflow element and not on the whole page
+  });
+* 
+* Alternatively, you can change the default values only once, and then use thoughout all the plug-in instances.
+* To define defaults values use the $.fn.rsOverview.defaults, e.g.
+* $.fn.rsOverview.defaults.scrollSpeed = 300;
+* $.fn.rsOverview.defaults.autoHide = true;
+* 
+* 
+* Methods              Remarks
+* ===================  ==================================================================================================================
+* contentSizeChanged   Call this method when content has been changed dynamically. It notifies the plug-in to rescale to the correct size
+* bookmarkToggle       Create/remove a bookmark in the current scroll position. Typically called from a "Toggle bookmark" control.
+* bookmarkClearAll     Removes all bookmarks created so far. Typically called from a "Clear all" control.
+* bookmarkGotoPrev     Scrolls the content backwards to previous bookmark
+* bookmarkGotoNext     Scrolls the content forwards to next bookmark
+* 
+* 
+* Events: (see above onChangeCtrlState and onChangeToggle)
+*   onChangeCtrlState: function(event, kind, enabled)     kind can be 'prev', 'next', 'clear'. enabled can be true or false.
+*   onChangeToggle: function(event, isMarked)             isMarked is true when current location is bookmarked, false otwerwise
+* Events are defined at construction time, e.g.,
+    $("#overview").rsOverview({
+        onChangeCtrlState: function (event, kind, enabled) {
+            if (enabled) {
+                $("#btnBookmark" + kind).removeAttr("disabled");
+            } else {
+                $("#btnBookmark" + kind).attr("disabled", "disabled");
+            }
+        },
+        onChangeToggle: function (event, isMarked) {
+            $("#btnBookmarkToggle").toggleClass('.buttonDown', isMarked); // make button down when isMarked is true or up when isMarked is false
+        }
+    });
+*
+*
+* Getters       Return          Remarks
+* ============  ==============  ===========================================================================================================
+* bookmarks     String array    Returns all the bookmarks. Each string element from the array has the format 'x#y', where x and y are integers that represent the bookmark location.
+* readonly      boolean         Returns false if the plug-in receives mouse events; true otherwise.
+* center        boolean         Returns false if the two content and viewport rectangules, are positionated on top left corner; True if they are centered relatively to the outer DIV.
+* autoHide      boolean         Returns false if the plug-in is always visible; true to hide it when the content has the same or smaller size than the viewport.
+* scrollSpeed   integer/string  Returns the current animation speed in ms when moving from one location to other, trigered by mouse click or by bookmark navigation. Use 0 for no animation. The strings 'slow', 'normal' and 'fast' can also be used.
+* Example:
+    var isReadOnly = $("#overview").rsOverview('option', 'readonly');
+*
+*
+* Setters           Input         Remarks
+* ================  ============  ============================================================================================================
+* bookmarks         String array  Parses the input array and on success, creates all bookmarks from that array. Any previous bookmarks are removed.
+* readonly          boolean       Enables or disables the mouse input
+* center            boolean       Affects the way the two content and viewport rectangules are rendered: centered relatively to the outer DIV or not
+* autoHide          boolean       If true then the plug-in automatically hides itself when content has the same or smaller size than the viewport
+* scrollSpeed       integer/string 
+* All setters return the value that was just set.
+* Example:
+    $("#overview").rsOverview('option', 'bookmarks', ['0#0', '0#100', '50#800']);  // loads 3 bookmarks 
+*
+*
 * If the size of the content element that is being monited changes, the plug-in must be notified with a call to 'contentSizeChanged' method.
 * Example:
 * You have the following markup being used by the plug-in to monitor the document.
@@ -56,6 +118,12 @@
 * If the document size changes, then the following call must be made:
 * $("#overview").rsOverview('contentSizeChanged');
 * This will render the plug-in to the correct area size.
+*
+*
+* This plug-in follows all good jQuery practises, namely:
+*  The possibility to use more than one instance on the same web page
+*  The possibility to work with more than one instance simultaneously, e.g. $("#overviewDoc, #overviewDiv").rsOverview('bookmarkToggle');
+*  Except for getter/setter calls, it respects jQuery chaining, which allows calling multiple methods on the same statement.
 */
 (function ($) {
     var OverviewClass = function ($element, opts, scrollbarPixels) {
@@ -534,9 +602,6 @@
         bookmarkGotoNext = function () {
             return this.trigger('bookmarkGotoNext.rsOverview');
         },
-        bookmarkLoadMarks = function (bookmList) {
-            return this.trigger('bookmarkLoadMarks.rsOverview', [bookmList]);
-        },
         option = function (options) {
             if (typeof arguments[0] == 'string') {
                 var op = arguments.length == 1 ? 'getter' : (arguments.length == 2 ? 'setter' : null);
@@ -554,7 +619,6 @@
                 case 'bookmarkClearAll': return bookmarkClearAll.apply(this);
                 case 'bookmarkGotoPrev': return bookmarkGotoPrev.apply(this);
                 case 'bookmarkGotoNext': return bookmarkGotoNext.apply(this);
-                case 'bookmarkLoadMarks': return bookmarkLoadMarks.apply(this, otherArgs);
                 case 'option': return option.apply(this, otherArgs);
                 default: return this;
             }
