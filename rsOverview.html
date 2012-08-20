@@ -19,12 +19,16 @@
                     } else {
                         $("#btnDocBookM_" + kind).attr("disabled", "disabled");
                     }
+                },
+                onCreate: function (event) {
+                    console.log('created');
+                    console.log(event);
                 }
             });
 
             // plug-in for overflowed element
             $("#overviewDiv").rsOverview({
-                viewport: $("#overflowed"),
+                monitor: $("#overflowed"),
                 onChangeCtrlState: function (event, kind, enabled) {
                     if (enabled) {
                         $("#btnOvrBookM_" + kind).removeAttr("disabled");
@@ -37,16 +41,16 @@
 
             // click events for the document buttons
             $("#btnDocBookM_toggle").click(function () {
-                $("#overviewDoc").rsOverview('bookmarkToggle');
+                $("#overviewDoc").rsOverview('toggleBk');
             });
             $("#btnDocBookM_clear").click(function () {
-                $("#overviewDoc").rsOverview('bookmarkClearAll');
+                $("#overviewDoc").rsOverview('clearBk');
             });
             $("#btnDocBookM_prev").click(function () {
-                $("#overviewDoc").rsOverview('bookmarkGotoPrev');
+                $("#overviewDoc").rsOverview('prevBk');
             });
             $("#btnDocBookM_next").click(function () {
-                $("#overviewDoc").rsOverview('bookmarkGotoNext');
+                $("#overviewDoc").rsOverview('nextBk');
             });
             $("#btnDoc_add").click(function () {
                 $("<p>content appended to the document manually</p>").appendTo($("body"));
@@ -60,16 +64,16 @@
 
             // click events for the overflow buttons
             $("#btnOvrBookM_toggle").click(function () {
-                $("#overviewDiv").rsOverview('bookmarkToggle');
+                $("#overviewDiv").rsOverview('toggleBk');
             });
             $("#btnOvrBookM_clear").click(function () {
-                $("#overviewDiv").rsOverview('bookmarkClearAll');
+                $("#overviewDiv").rsOverview('clearBk');
             });
             $("#btnOvrBookM_prev").click(function () {
-                $("#overviewDiv").rsOverview('bookmarkGotoPrev');
+                $("#overviewDiv").rsOverview('prevBk');
             });
             $("#btnOvrBookM_next").click(function () {
-                $("#overviewDiv").rsOverview('bookmarkGotoNext');
+                $("#overviewDiv").rsOverview('nextBk');
             });
             $("#btnOvr_add").click(function () {
                 $("<p>content appended to the overviewed element manually</p>").appendTo($("#overflowed"));
@@ -85,16 +89,10 @@
   <body>
 
     <!-- Overview plug-in markup for the whole document element -->
-    <div id="overviewDoc">
-        <div class="content"></div>                 <!-- 1st div represents the content area -->
-        <div class="viewport"></div>                <!-- 2nd div represents the viewport area -->
-    </div>
+    <div id="overviewDoc"></div>
 
     <!-- Overview plug-in markup for an overflowed div element -->
-    <div id="overviewDiv">
-        <div class="content"></div>                 <!-- 1st div represents the content area -->
-        <div class="viewport"></div>                <!-- 2nd div represents the viewport area -->
-    </div>
+    <div id="~...overviewDiv"></div>
 
 
 
@@ -172,17 +170,13 @@
     </ul>
 
     
-    <p style="margin-top: 100px">
-       some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
-    <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
-    <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
-    <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
-    <p>some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............some text to fill up content ..............</p>
-    <p>some text to fill up content ............some text to fill up content ............some text to fill up content ............some text to fill up content ............</p>
-    <p>some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........some text to fill up content ..........</p>
-    <p>some text to fill up content ........some text to fill up content ........some text to fill up content ........some text to fill up content ........</p>
-    <p>some text to fill up content ......some text to fill up content ......some text to fill up content ......some text to fill up content ......</p>
-    <p>some text to fill up content ....some text to fill up content ....some text to fill up content ....some text to fill up content ....</p>
-    <p>some text to fill up content ..some text to fill up content ..some text to fill up content ..some text to fill up content ..</p>
+    <p style="margin-top: 100px">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+    <p>Nunc condimentum, enim non consequat hendrerit, ipsum mauris ultricies augue, ac pellentesque nunc metus eget orci.</p>
+    <p>Nunc et lorem quam. Fusce mi velit, interdum ac sodales eu, bibendum vitae ante. Morbi condimentum consectetur felis, sit amet cursus nisl auctor id.</p>
+    <p>Sed a libero sed diam rhoncus scelerisque in at est. Curabitur sollicitudin sapien non nunc gravida vulputate. Vivamus nec nibh at enim ultrices convallis sit amet vel ligula. Integer nec est leo, facilisis posuere neque. Etiam fringilla, dui a ultricies mollis, urna odio dictum mauris, suscipit pellentesque enim nisi porttitor sapien. Curabitur semper nunc sed enim laoreet aliquam.</p>
+    <p>Aliquam dignissim metus sed turpis molestie tristique. Nullam justo augue, porta interdum ultricies a, aliquam a massa. Fusce consectetur lacinia lectus vitae ullamcorper. Integer eget metus lorem, eget posuere erat. Duis eleifend tempus lectus ut euismod. Vivamus ultricies porttitor semper. Fusce pulvinar nisl in ante laoreet volutpat. Ut cursus arcu a quam sollicitudin blandit. Maecenas tincidunt vestibulum euismod.</p>
+    <p>Etiam urna odio, vehicula eu consectetur at, consectetur at nisi. Donec nisl odio, malesuada vitae cursus porta, congue eget est. Maecenas semper ipsum sed justo pretium ut convallis velit pellentesque. Mauris sed sollicitudin libero. Sed id nunc arcu. Nulla facilisi. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Etiam egestas velit a lectus varius ornare. Sed ligula enim, sagittis non ultricies suscipit, porta sed odio. In condimentum sem quam, suscipit malesuada velit. Nunc auctor, nisi at tempor eleifend, libero tellus interdum nunc, in vehicula lectus justo et neque. Etiam faucibus varius sapien eu pharetra. Ut ornare, elit non suscipit aliquet, erat diam pellentesque justo, non viverra turpis sapien id urna.</p>
+    <p>Donec pretium varius nulla adipiscing feugiat. Vestibulum eu diam ante. Cras ligula neque, lacinia a congue sit amet, posuere posuere ante. Nam interdum suscipit lorem id auctor. Suspendisse potenti. Aliquam erat volutpat. In sit amet nibh vel sem posuere luctus. Ut porttitor consectetur arcu id bibendum. Phasellus a eros vitae dolor viverra pellentesque. Morbi aliquet, ipsum nec semper posuere, augue felis tincidunt magna, sed facilisis mi odio in dolor. Nulla facilisi. Etiam vehicula vehicula velit, egestas tempus felis consequat in. Morbi dui enim, commodo nec faucibus vel, convallis tincidunt mauris. Mauris posuere velit massa, sit amet facilisis velit. Praesent congue sapien id justo interdum eu tincidunt eros tincidunt. Proin cursus massa ut libero luctus porta.</p>
+    <p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Quisque a sapien eu dolor volutpat laoreet. Duis euismod ornare urna, volutpat ornare eros tempor ut. Donec interdum laoreet arcu, id auctor velit ultrices non. Aenean tortor orci, consequat ac egestas quis, mollis at magna. Aenean suscipit luctus odio ac hendrerit. Ut rhoncus, diam id dapibus viverra, massa nisl ullamcorper lorem, eget hendrerit mi lorem ut leo. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce volutpat, lectus vitae fringilla imperdiet, risus sapien hendrerit sem, sed rutrum justo orci non eros. Morbi ut odio sem. Pellentesque libero mi, adipiscing id ultricies vel, ultricies vel dui. Mauris imperdiet metus id dolor elementum tristique. Nam pretium semper augue, sed auctor justo dictum quis.</p>
   </body>
 </html>

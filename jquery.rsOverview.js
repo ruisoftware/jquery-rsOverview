@@ -15,8 +15,13 @@
 * ==========================
 * $('#overview').rsOverview();
 *
-* Markup
+* Required markup
 * ==========================
+* <div id="overview"></div>
+*
+* Markup generated
+* ==========================
+* Two children div elements are added to the #overview.
 * <div id="overview">
 *   <div class="content"></div>
 *   <div class="viewport"></div>
@@ -35,21 +40,12 @@
 *     position: absolute;
 * }
 *
-*
-* Input parameter    Default value  Remarks
-* =================  =============  ===============================================================================================
-* viewport           window         The element being monitored by the plug-in.
-* center             true           Whether to center the rendering of the inner DIVs relatively to the outer DIV.
-* autoHide           false          Whether to hide the plug-in when the content has the same size or is smaller than the viewport.
-* scrollSpeed        'medium'       Speed used when moving to a selected canvas position or when moving to a bookmark.
-* readonly           false          False: Reacts to mouse events; True: Ignores mouse events
-* bookmarkClass      '.bookm'       CSS selector class for the bookmarks. Typically should be 1x1 or 3x3 px square with a distinct background color or border
-* onChangeCtrlState  null           Event fired when the prev/next/clearAll controls - typically buttons - needs to be disabled/enabled 
-* onChangeToggle     null           Event fired when the toggle control - typically a button - needs to be pushed down or up
+* Please check the bottom of this file, for documentation regarding parameters.
+* 
 * If you don't want to use bookmarks, then just set bookmarkClass to null (or do not call any bookmark related methods), e.g.
   $('#overview').rsOverview({
       bookmarkClass: null,
-      viewport: $("#memo")    // use this plug-in on an overflow element and not on the whole page
+      monitor: $("#memo")    // use this plug-in on an overflow element and not on the whole page
   });
 * 
 * Alternatively, you can change the default values only once, and then use thoughout all the plug-in instances.
@@ -61,15 +57,17 @@
 * Methods              Remarks
 * ===================  ==================================================================================================================
 * contentSizeChanged   Call this method when content has been changed dynamically. It notifies the plug-in to rescale to the correct size
-* bookmarkToggle       Create/remove a bookmark in the current scroll position. Typically called from a "Toggle bookmark" control.
-* bookmarkClearAll     Removes all bookmarks created so far. Typically called from a "Clear all" control.
-* bookmarkGotoPrev     Scrolls the content backwards to previous bookmark
-* bookmarkGotoNext     Scrolls the content forwards to next bookmark
+* toggleBk             Create/remove a bookmark in the current scroll position. Typically called from a "Toggle bookmark" control.
+* clearBk              Removes all bookmarks created so far. Typically called from a "Clear all" control.
+* prevBk               Scrolls the content backwards to previous bookmark
+* nextBk               Scrolls the content forwards to next bookmark
+
 * 
-* 
-* Events: (see above onChangeCtrlState and onChangeToggle)
-*   onChangeCtrlState: function(event, kind, enabled)     kind can be 'prev', 'next', 'clear'. enabled can be true or false.
-*   onChangeToggle: function(event, isMarked)             isMarked is true when current location is bookmarked, false otwerwise
+* Events:
+* ===================================================
+* onChangeCtrlState: function(event, kind, enabled)     kind can be 'prev', 'next', 'clear'. enabled can be true or false.
+* onChangeToggle: function(event, isMarked)             isMarked is true when current location is bookmarked, false otwerwise
+*
 * Events are defined at construction time, e.g.,
     $("#overview").rsOverview({
         onChangeCtrlState: function (event, kind, enabled) {
@@ -126,12 +124,12 @@
 *  Except for getter/setter calls, it respects jQuery chaining, which allows calling multiple methods on the same statement.
 */
 (function ($) {
-    var OverviewClass = function ($element, opts, scrollbarPixels) {
-        var $divs = $element.children("div"),
-            $contentDiv = $divs.eq(0),
-            $viewportDiv = $divs.eq(1),
+    var OverviewClass = function ($elem, opts, scrollbarPixels) {
+        var $contentDiv = null,
+            $viewportDiv = null,
+            monitorWindow = opts.monitor === window || $(opts.monitor).is($(window)),
             cache = {
-                coef: 0,           // scale cache
+                scaleCoef: 0,
                 scrPixels: {
                     x: scrollbarPixels,
                     y: scrollbarPixels
@@ -263,7 +261,7 @@
                 go: function (idx) {
                     if (idx > -1 && idx < this.qt) {
                         var pnt = this.getPnt(this.marks[idx]);
-                        (opts.viewport === window ? $("html,body") : content.$obj).
+                        (monitorWindow ? $("html,body") : content.$obj).
                             animate({ scrollLeft: pnt[0], scrollTop: pnt[1] }, opts.scrollSpeed);
                         return true;
                     }
@@ -351,7 +349,7 @@
                         for (var i in loaded) {
                             this.doToggle(null, loaded[i][0], loaded[i][1]);
                         }
-                        $element.trigger('resize.rsOverview'); // to correctly render the marks
+                        $elem.trigger('resize.rsOverview'); // to correctly render the marks
                         this.checkEvents(event);
                     } catch (er) {
                         var msg = 'rsOverview.loadMarks(): ' + er;
@@ -373,7 +371,7 @@
             },
 
             onResize = function (event) {
-                if (opts.viewport === window) {
+                if (monitorWindow) {
                     content.resized();
                 } else {
                     content.resizedOverflow();
@@ -385,55 +383,55 @@
 
                 if (opts.autoHide) {
                     if (content.sizeX <= viewport.sizeX && content.sizeY <= viewport.sizeY) {
-                        $element.hide();
+                        $elem.hide();
                         return;
                     }
-                    $element.show();
+                    $elem.show();
                 } else {
-                    if ($element.is(':hidden')) {
-                        $element.show();
+                    if ($elem.is(':hidden')) {
+                        $elem.show();
                     }
                 }
 
                 var elementSize = {
-                    x: $element.width(),
-                    y: $element.height()
+                    x: $elem.width(),
+                    y: $elem.height()
                 }, coefX = content.sizeX / elementSize.x,
                     coefY = content.sizeY / elementSize.y;
-                cache.coef = Math.max(coefX, coefY);
+                cache.scaleCoef = Math.max(coefX, coefY);
                 coefX = (viewport.sizeX - getYScrollBarPixels()) / elementSize.x;
                 coefY = (viewport.sizeY - getXScrollBarPixels()) / elementSize.y;
-                cache.coef = Math.max(Math.max(coefX, coefY), cache.coef);
+                cache.scaleCoef = Math.max(Math.max(coefX, coefY), cache.scaleCoef);
 
                 // compute inner DIV size that corresponds to the size of the content being monitored
-                var calcWidth = content.sizeX / cache.coef,
-                    calcHeight = content.sizeY / cache.coef;
+                var calcWidth = content.sizeX / cache.scaleCoef,
+                    calcHeight = content.sizeY / cache.scaleCoef;
                 $contentDiv.width(calcWidth).height(calcHeight).css({
                     'left': (opts.center ? (elementSize.x - calcWidth) / 2 : 0).toFixed(0) + 'px',
                     'top': (opts.center ? (elementSize.y - calcHeight) / 2 : 0).toFixed(0) + 'px'
                 });
 
-                $element.trigger('render.rsOverview');
+                $elem.trigger('render.rsOverview');
             },
 
             onRender = function (event) {
                 // compute inner DIV size and position that corresponds to the size and position of the viewport monitored
-                var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.coef,
-                    calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.coef;
+                var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef,
+                    calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.scaleCoef;
                 $viewportDiv.
                     width(calcWidth).
                     height(calcHeight).
                     css({
-                        'left': ((viewport.$obj.scrollLeft() / cache.coef) + (opts.center ? $contentDiv.position().left : 0)).toFixed(1) + 'px',
-                        'top': ((viewport.$obj.scrollTop() / cache.coef) + (opts.center ? $contentDiv.position().top : 0)).toFixed(1) + 'px'
+                        'left': ((viewport.$obj.scrollLeft() / cache.scaleCoef) + (opts.center ? $contentDiv.position().left : 0)).toFixed(1) + 'px',
+                        'top': ((viewport.$obj.scrollTop() / cache.scaleCoef) + (opts.center ? $contentDiv.position().top : 0)).toFixed(1) + 'px'
                     });
 
                 for (var i in bookmarkUtil.marks) {
                     var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
                         $bookm = $(opts.bookmarkClass + ":eq(" + i + ")", $contentDiv);
                     $bookm.css({
-                        'left': ((calcWidth - $bookm.outerWidth()) / 2 + (pnt[0] / cache.coef)).toFixed(0) + 'px',
-                        'top': ((calcHeight - $bookm.outerHeight()) / 2 + (pnt[1] / cache.coef)).toFixed(0) + 'px'
+                        'left': ((calcWidth - $bookm.outerWidth()) / 2 + (pnt[0] / cache.scaleCoef)).toFixed(0) + 'px',
+                        'top': ((calcHeight - $bookm.outerHeight()) / 2 + (pnt[1] / cache.scaleCoef)).toFixed(0) + 'px'
                     });
                 }
 
@@ -441,22 +439,22 @@
                     bookmarkUtil.states.triggerToggle(event, bookmarkUtil.isMarked());
                 }
             },
-            onBookmarkToggle = function (event) {
+            onToggleBk = function (event) {
                 if (opts.bookmarkClass) {
                     bookmarkUtil.toggle(event);
                 }
             },
-            onBookmarkClearAll = function (event) {
+            onClearBk = function (event) {
                 if (opts.bookmarkClass) {
                     bookmarkUtil.clearAll(event);
                 }
             },
-            onBookmarkGotoPrev = function (event) {
+            onPrevBk = function (event) {
                 if (opts.bookmarkClass) {
                     bookmarkUtil.gotoPrev(event);
                 }
             },
-            onBookmarkGotoNext = function (event) {
+            onNextBk = function (event) {
                 if (opts.bookmarkClass) {
                     bookmarkUtil.gotoNext(event);
                 }
@@ -483,20 +481,29 @@
                         break;
                     case 'center':
                         opts.center = value;
-                        $element.trigger('resize.rsOverview');
+                        $elem.trigger('resize.rsOverview');
                         break;
                     case 'autoHide':
                         opts.autoHide = value;
-                        $element.trigger('resize.rsOverview');
+                        $elem.trigger('resize.rsOverview');
                         break;
                     case 'scrollSpeed': opts.scrollSpeed = value;
                 }
                 return onGetter(event, field);
             },
+            onCreate = function (event) {
+                if (opts.onCreate) {
+                    opts.onCreate(event);
+                }
+            },
             init = function () {
+                $contentDiv = $("<div>").addClass(opts.contentClass).css('overflow', 'hidden');
+                $viewportDiv = $("<div>").addClass(opts.viewportClass);
+                $elem.append($contentDiv).append($viewportDiv);
+
                 // elements being monitorized for scroll and resize events
-                viewport.$obj = $(opts.viewport);
-                if (opts.viewport === window) {
+                viewport.$obj = $(opts.monitor);
+                if (monitorWindow) {
                     content.$obj = $(document);
                 } else {
                     content.$obj = viewport.$obj;
@@ -504,9 +511,9 @@
 
                 // when the viewport is scrolled or when is resized, the plugin is updated
                 viewport.$obj.scroll(function () {
-                    $element.trigger('render.rsOverview');
+                    $elem.trigger('render.rsOverview');
                 }).resize(function () {
-                    $element.trigger('resize.rsOverview');
+                    $elem.trigger('resize.rsOverview');
                 });
 
                 $viewportDiv.mousedown(function (e) {
@@ -525,10 +532,10 @@
                         };
 
                         $viewportDiv.bind('mousemove.rsOverview', function (e) {
-                            var pos = [$element.position(), $contentDiv.position()];
+                            var pos = [$elem.position(), $contentDiv.position()];
                             viewport.$obj.
-                                    scrollLeft(cache.coef * (e.pageX - dragInfo.initClick.X + dragInfo.initPos.left - pos[0].left - pos[1].left)).
-                                    scrollTop(cache.coef * (e.pageY - dragInfo.initClick.Y + dragInfo.initPos.top - pos[0].top - pos[1].top));
+                                    scrollLeft(cache.scaleCoef * (e.pageX - dragInfo.initClick.X + dragInfo.initPos.left - pos[0].left - pos[1].left)).
+                                    scrollTop(cache.scaleCoef * (e.pageY - dragInfo.initClick.Y + dragInfo.initPos.top - pos[0].top - pos[1].top));
                         });
                         e.preventDefault();
                     }
@@ -541,15 +548,15 @@
                     }
                 });
 
-                // mouse click on the content: scroll jumps directly to that position
+                // mouse click on the content: viewport jumps directly to that position
                 $contentDiv.mousedown(function (e) {
                     if (!opts.readonly) {
-                        var $pos = [$element.position(), $(this).position()];
-                        if (opts.viewport === window) {
+                        var $pos = [$elem.position(), $(this).position()];
+                        if (monitorWindow) {
                             var fromPnt = [$("html").scrollLeft(), $("html").scrollTop()],
                                 toPnt = [
-                                    cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
-                                    cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
+                                    cache.scaleCoef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
+                                    cache.scaleCoef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
                                 ],
                                 supportsHtml = (fromPnt[0] != 0 || fromPnt[1] != 0);
 
@@ -561,27 +568,29 @@
 
                         } else {
                             viewport.$obj.animate({
-                                scrollLeft: cache.coef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
-                                scrollTop: cache.coef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
+                                scrollLeft: cache.scaleCoef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
+                                scrollTop: cache.scaleCoef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
                             }, opts.scrollSpeed);
                         }
                         e.preventDefault();
                     }
                 });
-                $contentDiv.css('overflow', 'hidden');
-                $element.
-                        bind('resize.rsOverview', onResize).
-                        bind('render.rsOverview', onRender).
-                        bind('bookmarkToggle.rsOverview', onBookmarkToggle).
-                        bind('bookmarkClearAll.rsOverview', onBookmarkClearAll).
-                        bind('bookmarkGotoPrev.rsOverview', onBookmarkGotoPrev).
-                        bind('bookmarkGotoNext.rsOverview', onBookmarkGotoNext).
-                        bind('getter.rsOverview', onGetter).
-                        bind('setter.rsOverview', onSetter);
 
+                $elem.
+                    bind('resize.rsOverview', onResize).
+                    bind('render.rsOverview', onRender).
+                    bind('toggleBk.rsOverview', onToggleBk).
+                    bind('clearBk.rsOverview', onClearBk).
+                    bind('prevBk.rsOverview', onPrevBk).
+                    bind('nextBk.rsOverview', onNextBk).
+                    bind('getter.rsOverview', onGetter).
+                    bind('setter.rsOverview', onSetter).
+                    bind('create.rsOverview', onCreate);
 
                 // graphical initialization when plugin is called (after page and DOM are loaded)
-                $element.trigger('resize.rsOverview');
+                $elem.trigger('resize.rsOverview');
+
+                $elem.triggerHandler('create.rsOverview');
             };
 
         init();
@@ -592,16 +601,16 @@
             return this.trigger('resize.rsOverview');
         },
         bookmarkToggle = function () {
-            return this.trigger('bookmarkToggle.rsOverview');
+            return this.trigger('toggleBk.rsOverview');
         },
         bookmarkClearAll = function () {
-            return this.trigger('bookmarkClearAll.rsOverview');
+            return this.trigger('clearBk.rsOverview');
         },
         bookmarkGotoPrev = function () {
-            return this.trigger('bookmarkGotoPrev.rsOverview');
+            return this.trigger('prevBk.rsOverview');
         },
         bookmarkGotoNext = function () {
-            return this.trigger('bookmarkGotoNext.rsOverview');
+            return this.trigger('nextBk.rsOverview');
         },
         option = function (options) {
             if (typeof arguments[0] == 'string') {
@@ -616,16 +625,16 @@
             var otherArgs = Array.prototype.slice.call(arguments, 1);
             switch (options) {
                 case 'contentSizeChanged': return contentSizeChanged.apply(this);
-                case 'bookmarkToggle': return bookmarkToggle.apply(this);
-                case 'bookmarkClearAll': return bookmarkClearAll.apply(this);
-                case 'bookmarkGotoPrev': return bookmarkGotoPrev.apply(this);
-                case 'bookmarkGotoNext': return bookmarkGotoNext.apply(this);
+                case 'toggleBk': return bookmarkToggle.apply(this);
+                case 'clearBk': return bookmarkClearAll.apply(this);
+                case 'prevBk': return bookmarkGotoPrev.apply(this);
+                case 'nextBk': return bookmarkGotoNext.apply(this);
                 case 'option': return option.apply(this, otherArgs);
                 default: return this;
             }
         }
 
-        var opts = $.extend({}, $.fn.rsOverview.defaults, options);
+        var opts = $.extend({}, $.fn.rsOverview.defaults, options),
 
         // returns the size of a vertical/horizontal scroll bar in pixels
         getScrollbarSize = function () {
@@ -642,7 +651,7 @@
         },
 
         // number pixels occupied by system scroll bar (only used for overflowed elements);
-            scrollbarPixels = opts.viewport === window ? 0 : getScrollbarSize();
+        scrollbarPixels = opts.monitor === window || opts.monitor === $(window) ? 0 : getScrollbarSize();
 
         return this.each(function () {
             new OverviewClass($(this), opts, scrollbarPixels);
@@ -651,14 +660,17 @@
 
     // public access to the default input parameters
     $.fn.rsOverview.defaults = {
-        viewport: window,
-        center: true,
-        autoHide: false,
-        readonly: false,
-        scrollSpeed: 'medium',
-        bookmarkClass: '.bookm',
-        onChangeCtrlState: null, // function(event, kind, enabled)
-        onChangeToggle: null     // function(event, isMarked)
+        monitor: $(window),         // The element being monitored by the plug-in. Type: jQuery object.
+        center: true,               // Whether to render the content and viewport reactangles centered in the placeholder area. Type: boolean.
+        autoHide: false,            // Whether to hide the plug-in when the content has the same size or is smaller than the viewport. Type: boolean.
+        readonly: false,            // False: Reacts to mouse/keyboard events; True: Ignores mouse/keyboard events. Type: boolean.
+        scrollSpeed: 'medium',      // Speed used when moving to a selected canvas position or when moving to a bookmark. You can also use a sepecific duration in milliseconds. Type: string or integer.
+        bookmarkClass: 'bookm',     // CSS class(es) for bookmark style. Typically should be 1x1 or 3x3 px square with a distinct background color or border. Type: string.
+        contentClass: 'content',    // CSS class(es) for the outer div representing the content area. Type: string.
+        viewportClass: 'viewport',  // CSS class(es) for the inner div representing the viewport area. Type: string.
+        onCreate: null,             // Event fired after the plug-in has been initialized. Type: function(event)
+        onChangeCtrlState: null,    // Event fired when the UI controls for prev/next/clearAll needs to be disabled/enabled. Type: function(event, kind, enabled)
+        onChangeToggle: null        // Event fired when the UI control for the toggle UI control needs to be pushed down or up. Type: function(event, isMarked)
     };
 
 })(jQuery);
