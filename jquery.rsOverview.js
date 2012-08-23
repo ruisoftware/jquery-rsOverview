@@ -1,59 +1,68 @@
 /**
 * jQuery Overview - A viewport/content length overview
 * ====================================================
-* jQuery Overview displays two rectangles representing each one the content and the viewport.
-* Provides an overview of the whole page to the user.
+* jQuery Overview displays two rectangles representing the content and the position of the viewport within the content.
+* It provides a visual interface to the user of the current viewport location within the whole document.
+* Optionally, the user can bookmark specific locations in the page. These bookmarks can be loaded and saved.
+* Can also work for overflowed elements, that is, when you have a blocked element with content that overflows it, causing scroll bars to appear.
 *
 * Licensed under The MIT License
 * 
-* @version   3
+* @version   3.1
 * @since     11.27.2010
 * @author    Jose Rui Santos
+* http://www.ruisoftware.com/
 *
 *
 * Usage with default values:
 * ==========================
 * $('#overview').rsOverview();
 *
+*
 * Required markup
 * ==========================
+* Any blocked element can be used as a placeholder for this plug-in.
 * <div id="overview"></div>
+*
 *
 * Markup generated
 * ==========================
 * Two children div elements are added to the #overview.
+* For demonstration purposes, the generated markup is shown here in upper case.
+*
 * <div id="overview">
-*   <div class="content"></div>
-*   <div class="viewport"></div>
+*   <DIV class="content"></DIV>
+*   <DIV class="viewport"></DIV>
 * </div>
+*
+* If there are bookmarks being used, then additional elements are inserted after the viewport block.
+* The following is the markup that contains 3 bookmarks:
+* <div id="overview">
+*   <DIV class="content"></DIV>
+*   <DIV class="viewport"></DIV>
+*   <DIV class="bookm"></DIV>
+*   <DIV class="bookm"></DIV>
+*   <DIV class="bookm"></DIV>
+* </div>
+*
 *
 * CSS
 * ==========================
+* The placeholder element (#overview) should have a non zero width and height.
 * #overview {
 *     position: fixed;
 *     width: 200px;
 *     height: 300px;
 * }
-*
-* .content,
-* .viewport {
+* 
+* When the plug-in monitors overflowed elements (not the browser window), then the CSS should be:
+* #overview {
 *     position: absolute;
+*     width: 200px;
+*     height: 300px;
 * }
 *
-* Please check the bottom of this file, for documentation regarding parameters.
-* 
-* If you don't want to use bookmarks, then just set bookmarkClass to null (or do not call any bookmark related methods), e.g.
-  $('#overview').rsOverview({
-      bookmarkClass: null,
-      monitor: $("#memo")    // use this plug-in on an overflow element and not on the whole page
-  });
-* 
-* Alternatively, you can change the default values only once, and then use thoughout all the plug-in instances.
-* To define defaults values use the $.fn.rsOverview.defaults, e.g.
-* $.fn.rsOverview.defaults.scrollSpeed = 300;
-* $.fn.rsOverview.defaults.autoHide = true;
-* 
-* 
+*
 * Methods              Remarks
 * ===================  ==================================================================================================================
 * contentSizeChanged   Call this method when content has been changed dynamically. It notifies the plug-in to rescale to the correct size
@@ -61,29 +70,43 @@
 * clearBk              Removes all bookmarks created so far. Typically called from a "Clear all" control.
 * prevBk               Scrolls the content backwards to previous bookmark
 * nextBk               Scrolls the content forwards to next bookmark
-
+*
+*
+* Parameter            Remarks
+* ===================  ==================================================================================================================
+* For documentation regarding parameters, please check the bottom of this file.
+*
+* If you don't want to use bookmarks, then just set bookmarkClass to null (or do not call any bookmark related methods), e.g.
+  $('#overview').rsOverview({
+      bookmarkClass: null,
+      monitor: $("#memo")    // use this plug-in on an overflow element and not on the whole page
+  });
+* Alternatively, you can change the default values only once, and then use thoughout all the plug-in instances.
+* To define defaults values use the $.fn.rsOverview.defaults, e.g.
+* $.fn.rsOverview.defaults.scrollSpeed = 300;
+* $.fn.rsOverview.defaults.autoHide = true;
 * 
-* Events:
-* ===================================================
-* onChangeCtrlState: function(event, kind, enabled)     kind can be 'prev', 'next', 'clear'. enabled can be true or false.
-* onChangeToggle: function(event, isMarked)             isMarked is true when current location is bookmarked, false otwerwise
+* 
+* Event            Remarks
+* ===================  ==================================================================================================================
+* For documentation regarding events, please check the bottom of this file.
 *
-* Events are defined at construction time, e.g.,
-    $("#overview").rsOverview({
-        onChangeCtrlState: function (event, kind, enabled) {
-            if (enabled) {
-                $("#btnBookmark" + kind).removeAttr("disabled");
-            } else {
-                $("#btnBookmark" + kind).attr("disabled", "disabled");
-            }
-        },
-        onChangeToggle: function (event, isMarked) {
-            $("#btnBookmarkToggle").toggleClass('.buttonDown', isMarked); // make button down when isMarked is true or up when isMarked is false
-        }
-    });
+* Example on how to set events:
+  $("#overview").rsOverview({
+      onChangeCtrlState: function (event, kind, enabled) {
+          if (enabled) {
+              $("#btnBookmark" + kind).removeAttr("disabled");
+          } else {
+              $("#btnBookmark" + kind).attr("disabled", "disabled");
+          }
+      },
+      onChangeToggle: function (event, isMarked) {
+          $("#btnBookmarkToggle").toggleClass('.buttonDown', isMarked); // make button down when isMarked is true or up when isMarked is false
+      }
+  });
 *
 *
-* Getters       Return          Remarks
+* Getter        Return          Remarks
 * ============  ==============  ===========================================================================================================
 * bookmarks     String array    Returns all the bookmarks. Each string element from the array has the format 'x#y', where x and y are integers that represent the bookmark location.
 * readonly      boolean         Returns false if the plug-in receives mouse events; true otherwise.
@@ -94,7 +117,7 @@
     var isReadOnly = $("#overview").rsOverview('option', 'readonly');
 *
 *
-* Setters           Input         Remarks
+* Setter            Input         Remarks
 * ================  ============  ============================================================================================================
 * bookmarks         String array  Parses the input array and on success, creates all bookmarks from that array. Any previous bookmarks are removed.
 * readonly          boolean       Enables or disables the mouse input
@@ -103,31 +126,29 @@
 * scrollSpeed       integer/string 
 * All setters return the value that was just set.
 * Example:
-    $("#overview").rsOverview('option', 'bookmarks', ['0#0', '0#100', '50#800']);  // loads 3 bookmarks 
+    $("#overview").rsOverview('option', 'bookmarks', ['0#0', '0#100', '50#800']);  // loads 3 bookmarks. Each bookmark is a 'xxxx#yyyy' string where 
+                                                                                   // 'xxxx' is horizontal scroll position and 'yyyy' is the vertical scroll position
 *
 *
-* If the size of the content element that is being monited changes, the plug-in must be notified with a call to 'contentSizeChanged' method.
-* Example:
-* You have the following markup being used by the plug-in to monitor the document.
-*    <div id="overview">
-*        <div class="content"></div>
-*        <div class="viewport"></div>
-*    </div>
+* If the size of the content element that is being monited changes, the plug-in must be notified through a call to 'contentSizeChanged' method.
+* Image you have the following markup being used by the plug-in to monitor the document:
+*    <div id="overview"></div>
 * If the document size changes, then the following call must be made:
 * $("#overview").rsOverview('contentSizeChanged');
 * This will render the plug-in to the correct area size.
 *
 *
 * This plug-in follows all good jQuery practises, namely:
-*  The possibility to use more than one instance on the same web page
-*  The possibility to work with more than one instance simultaneously, e.g. $("#overviewDoc, #overviewDiv").rsOverview('bookmarkToggle');
-*  Except for getter/setter calls, it respects jQuery chaining, which allows calling multiple methods on the same statement.
+*  - The possibility to use more than one instance on the same web page
+*  - The possibility to work with more than one instance simultaneously, e.g. $("#overviewDoc, #overviewDiv").rsOverview('bookmarkToggle');
+*  - Except for getter/setter calls, it respects jQuery chaining, which allows calling multiple methods on the same statement.
 */
 (function ($) {
     var OverviewClass = function ($elem, opts, scrollbarPixels) {
         var $contentDiv = null,
             $viewportDiv = null,
             monitorWindow = opts.monitor === window || $(opts.monitor).is($(window)),
+            animating = false,
             cache = {
                 scaleCoef: 0,
                 scrPixels: {
@@ -163,12 +184,25 @@
 
             bookmarkUtil = {
                 states: {
-                    // states are null(initial state), true or false
                     toggle: null,
-                    triggerToggle: function (event, newToggle) {
-                        if (opts.onChangeToggle && newToggle !== this.toggle) {
+                    toggleIdx: null,
+                    triggerToggle: function (event, newToggleIdx) {
+                        var newToggle = newToggleIdx > -1;
+                        if (newToggle !== this.toggle || newToggle && newToggleIdx != this.toggleIdx) {
+                            if (opts.bookmarkActiveClass) {
+                                bookmarkUtil.$allBks.removeClass(opts.bookmarkActiveClass);
+                                if (newToggle) {
+                                    bookmarkUtil.$allBks.eq(newToggleIdx).addClass(opts.bookmarkActiveClass);
+                                }
+                            }
+                            if (newToggle) {
+                                bookmarkUtil.currIdx = newToggleIdx;
+                            }
+                            if (newToggle !== this.toggle && opts.onChangeToggle) {
+                                opts.onChangeToggle(event, newToggle);
+                            }
                             this.toggle = newToggle;
-                            opts.onChangeToggle(event, this.toggle);
+                            this.toggleIdx = newToggleIdx;
                         }
                     },
                     prev: null,
@@ -193,52 +227,64 @@
                         }
                     }
                 },
-                currIdx: 0,
+                $allBks: $(),
+                currIdx: -1,
                 qt: 0,
                 marks: [],
                 getPnt: function (key) {
                     var k = key.split("#");
-                    return [parseInt(k[0], 10), parseInt(k[1], 10)];
+                    return { scrollLeft: parseInt(k[0], 10), scrollTop: parseInt(k[1], 10) };
                 },
                 checkEvents: function (event) {
-                    if (opts.onChangeCtrlState) {
-                        if (this.currIdx === -1) {
-                            this.states.triggerPrev(event, false);
-                            this.states.triggerNext(event, false);
-                            this.states.triggerClearAll(event, false);
-                        } else {
-                            this.states.triggerPrev(event, true);
+                    if (opts.bookmarkClass) {
+                        this.states.triggerToggle(event, this.getMarkedIdx());
+                        if (opts.onChangeCtrlState) {
+                            this.states.triggerPrev(event, this.currIdx > 0 || this.states.toggle === false && this.currIdx === 0);
                             this.states.triggerNext(event, this.currIdx < this.qt - 1);
-                            this.states.triggerClearAll(event, true);
+                            this.states.triggerClearAll(event, this.qt > 0);
                         }
                     }
-                    this.states.triggerToggle(event, this.isMarked());
                 },
                 doToggle: function (event, x, y) {
                     var key = x + "#" + y,
                         idx = $.inArray(key, this.marks);
                     if (idx === -1) {
-                        this.marks.push(key); // append
-                        var pos = [$viewportDiv.position().left - $contentDiv.position().left,
-                                   $viewportDiv.position().top - $contentDiv.position().top],
-                            half = [$viewportDiv.width() / 2, $viewportDiv.height() / 2],
-                            $bookm = $("<div />").
-                                addClass(opts.bookmarkClass.replace(/^[.]/, '')). // if opts.bookmarkClass string starts with a period, then remove it
-                                appendTo($contentDiv);
-                        var size = [$bookm.outerWidth(), $bookm.outerHeight()];
+                        var pos = $viewportDiv.position(),
+                            $bookm = $("<div>").addClass(opts.bookmarkClass).appendTo($elem);
+
+                        if (opts.bookmarkHint) {
+                            $bookm.attr('title', opts.bookmarkHint);
+                        }
                         $bookm.css({
                             'position': 'absolute',
-                            'left': (pos[0] + half[0] - size[0] / 2).toFixed(0) + 'px',
-                            'top': (pos[1] + half[1] - size[1] / 2).toFixed(0) + 'px'
+                            'left': Math.round(pos.left + ($viewportDiv.width() - $bookm.outerWidth()) / 2) + 'px',
+                            'top': Math.round(pos.top + ($viewportDiv.height() - $bookm.outerHeight()) / 2) + 'px'
+                        }).mousedown(function (e) {
+                            if (!opts.readonly) {
+                                var idx = bookmarkUtil.$allBks.index(this);
+                                if (idx > -1 && idx < bookmarkUtil.qt) { // found the bookmark ?
+                                    scrollTo(bookmarkUtil.getPnt(bookmarkUtil.marks[idx]), function () {
+                                        bookmarkUtil.checkEvents(e);
+                                    });
+                                }
+                                return false;
+                            }
                         });
+
+                        this.marks.push(key); // append
+                        this.$allBks = this.$allBks.add($bookm);
                         this.qt = this.marks.length;
                         this.currIdx = this.qt - 1;
                     } else {
                         this.marks.splice(idx, 1); // delete
-                        $(opts.bookmarkClass + ":eq(" + idx + ")", $contentDiv).remove();
+                        this.$allBks.eq(idx).remove(); // from DOM
+                        this.$allBks.splice(idx, 1); // from jQuery "array"
                         this.qt = this.marks.length;
-                        this.currIdx = idx - 1;
+                        if (this.currIdx >= this.qt) {
+                            this.currIdx = this.qt - 1;
+                        }
                     }
+
                     if (event) {
                         this.checkEvents(event);
                     }
@@ -250,7 +296,8 @@
                     this.marks.length = 0;
                     this.qt = 0;
                     this.currIdx = -1;
-                    $(opts.bookmarkClass, $contentDiv).remove();
+                    this.$allBks.remove(); // from DOM
+                    this.$allBks = $();
                     if (event) {
                         this.checkEvents(event);
                     }
@@ -258,61 +305,33 @@
                 clearAll: function (event) {
                     this.doClearAll(event);
                 },
-                go: function (idx) {
+                go: function (idx, onComplete) {
                     if (idx > -1 && idx < this.qt) {
-                        var pnt = this.getPnt(this.marks[idx]);
-                        (monitorWindow ? $("html,body") : content.$obj).
-                            animate({ scrollLeft: pnt[0], scrollTop: pnt[1] }, opts.scrollSpeed);
+                        scrollTo(this.getPnt(this.marks[idx]), onComplete);
                         return true;
                     }
                     return false;
                 },
-                beforeGo: function (offset) {
-                    var idx = this.getMarkedIdx();
-                    if (idx !== -1) {
-                        this.currIdx = idx + offset;
-                    }
-
-                    if (this.currIdx < 0) {
-                        this.currIdx = 0;
-                    }
-                    if (this.currIdx > this.qt - 1) {
-                        this.currIdx = this.qt - 1;
-                    }
-                },
                 gotoPrev: function (event) {
-                    this.beforeGo(-1);
-                    var success = this.go(this.currIdx);
-                    if (success) {
-                        if (opts.onChangeCtrlState) {
-                            if (this.currIdx === 0) {
-                                this.states.triggerPrev(event, false);
-                            }
-                            this.states.triggerNext(event, true);
+                    if (this.currIdx > 0 || this.states.toggle === false) {
+                        if (this.states.toggle !== false) {
+                            this.currIdx--;
                         }
-                        --this.currIdx;
+                        this.go(this.currIdx, function () {
+                            bookmarkUtil.checkEvents(event);
+                        });
                     }
-                    return success;
                 },
                 gotoNext: function (event) {
-                    this.beforeGo(+1);
-                    var success = this.go(this.currIdx);
-                    if (success) {
-                        if (opts.onChangeCtrlState) {
-                            if (this.currIdx === this.qt - 1) {
-                                this.states.triggerNext(event, false);
-                            }
-                            this.states.triggerPrev(event, true);
-                        }
-                        ++this.currIdx;
+                    if (this.currIdx < this.qt - 1) {
+                        this.currIdx++;
+                        this.go(this.currIdx, function () {
+                            bookmarkUtil.checkEvents(event);
+                        });
                     }
-                    return success;
                 },
                 getMarkedIdx: function () {
                     return $.inArray(content.$obj.scrollLeft() + "#" + content.$obj.scrollTop(), this.marks);
-                },
-                isMarked: function () {
-                    return this.getMarkedIdx() > -1;
                 },
                 parseLoad: function (bookmarks) {
                     var list = [];
@@ -349,7 +368,7 @@
                         for (var i in loaded) {
                             this.doToggle(null, loaded[i][0], loaded[i][1]);
                         }
-                        $elem.trigger('resize.rsOverview'); // to correctly render the marks
+                        $elem.triggerHandler('resize.rsOverview'); // to correctly render the marks
                         this.checkEvents(event);
                     } catch (er) {
                         var msg = 'rsOverview.loadMarks(): ' + er;
@@ -360,6 +379,20 @@
                         }
                     }
                 }
+            },
+
+            scrollTo = function (toPnt, onComplete) {
+                var $anim = monitorWindow ? $("body,html") : viewport.$obj;
+                if (animating) {
+                    $anim.stop(true);
+                }
+                animating = true;
+                $anim.animate(toPnt, opts.scrollSpeed, function (event) {
+                    animating = false;
+                    if (onComplete !== undefined) {
+                        onComplete();
+                    }
+                });
             },
 
             getXScrollBarPixels = function () {
@@ -397,7 +430,7 @@
                     x: $elem.width(),
                     y: $elem.height()
                 }, coefX = content.sizeX / elementSize.x,
-                    coefY = content.sizeY / elementSize.y;
+                   coefY = content.sizeY / elementSize.y;
                 cache.scaleCoef = Math.max(coefX, coefY);
                 coefX = (viewport.sizeX - getYScrollBarPixels()) / elementSize.x;
                 coefY = (viewport.sizeY - getXScrollBarPixels()) / elementSize.y;
@@ -406,37 +439,41 @@
                 // compute inner DIV size that corresponds to the size of the content being monitored
                 var calcWidth = content.sizeX / cache.scaleCoef,
                     calcHeight = content.sizeY / cache.scaleCoef;
-                $contentDiv.width(calcWidth).height(calcHeight).css({
-                    'left': (opts.center ? (elementSize.x - calcWidth) / 2 : 0).toFixed(0) + 'px',
-                    'top': (opts.center ? (elementSize.y - calcHeight) / 2 : 0).toFixed(0) + 'px'
+                $contentDiv.width(Math.round(calcWidth)).height(Math.round(calcHeight)).css({
+                    'left': Math.round(opts.center ? (elementSize.x - calcWidth) / 2 : 0) + 'px',
+                    'top': Math.round(opts.center ? (elementSize.y - calcHeight) / 2 : 0) + 'px'
                 });
 
-                $elem.trigger('render.rsOverview');
+                $elem.triggerHandler('render.rsOverview', [true]);
             },
 
-            onRender = function (event) {
+            onRender = function (event, needResize) {
                 // compute inner DIV size and position that corresponds to the size and position of the viewport monitored
-                var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef,
-                    calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.scaleCoef;
-                $viewportDiv.
-                    width(calcWidth).
-                    height(calcHeight).
-                    css({
-                        'left': ((viewport.$obj.scrollLeft() / cache.scaleCoef) + (opts.center ? $contentDiv.position().left : 0)).toFixed(1) + 'px',
-                        'top': ((viewport.$obj.scrollTop() / cache.scaleCoef) + (opts.center ? $contentDiv.position().top : 0)).toFixed(1) + 'px'
-                    });
+                var pos = $contentDiv.position();
+                if (needResize) {
+                    var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef,
+                        calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.scaleCoef;
 
-                for (var i in bookmarkUtil.marks) {
-                    var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
-                        $bookm = $(opts.bookmarkClass + ":eq(" + i + ")", $contentDiv);
-                    $bookm.css({
-                        'left': ((calcWidth - $bookm.outerWidth()) / 2 + (pnt[0] / cache.scaleCoef)).toFixed(0) + 'px',
-                        'top': ((calcHeight - $bookm.outerHeight()) / 2 + (pnt[1] / cache.scaleCoef)).toFixed(0) + 'px'
-                    });
+                    $viewportDiv.width(Math.round(calcWidth)).height(Math.round(calcHeight));
+
+                    for (var i in bookmarkUtil.marks) {
+                        var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
+                            $bookm = bookmarkUtil.$allBks.eq(i);
+                        $bookm.css({
+                            'left': Math.round(pos.left + (calcWidth - $bookm.outerWidth()) / 2 + pnt.scrollLeft / cache.scaleCoef) + 'px',
+                            'top': Math.round(pos.top + (calcHeight - $bookm.outerHeight()) / 2 + pnt.scrollTop / cache.scaleCoef) + 'px'
+                        });
+                    }
                 }
+                pos.left = viewport.$obj.scrollLeft() / cache.scaleCoef + (opts.center ? pos.left : 0);
+                pos.top = viewport.$obj.scrollTop() / cache.scaleCoef + (opts.center ? pos.top : 0);
+                $viewportDiv.css({
+                    'left': Math.round(pos.left) + 'px',
+                    'top': Math.round(pos.top) + 'px'
+                });
 
-                if (opts.bookmarkClass) {
-                    bookmarkUtil.states.triggerToggle(event, bookmarkUtil.isMarked());
+                if (!animating) {
+                    bookmarkUtil.checkEvents(event);
                 }
             },
             onToggleBk = function (event) {
@@ -481,11 +518,11 @@
                         break;
                     case 'center':
                         opts.center = value;
-                        $elem.trigger('resize.rsOverview');
+                        $elem.triggerHandler('resize.rsOverview');
                         break;
                     case 'autoHide':
                         opts.autoHide = value;
-                        $elem.trigger('resize.rsOverview');
+                        $elem.triggerHandler('resize.rsOverview');
                         break;
                     case 'scrollSpeed': opts.scrollSpeed = value;
                 }
@@ -497,8 +534,11 @@
                 }
             },
             init = function () {
-                $contentDiv = $("<div>").addClass(opts.contentClass).css('overflow', 'hidden');
-                $viewportDiv = $("<div>").addClass(opts.viewportClass);
+                $contentDiv = $("<div>").addClass(opts.contentClass).css({
+                    'overflow': 'hidden',
+                    'position': 'absolute'
+                });
+                $viewportDiv = $("<div>").addClass(opts.viewportClass).css('position', 'absolute');
                 $elem.append($contentDiv).append($viewportDiv);
 
                 // elements being monitorized for scroll and resize events
@@ -511,13 +551,17 @@
 
                 // when the viewport is scrolled or when is resized, the plugin is updated
                 viewport.$obj.scroll(function () {
-                    $elem.trigger('render.rsOverview');
+                    $elem.triggerHandler('render.rsOverview', [false]);
                 }).resize(function () {
-                    $elem.trigger('resize.rsOverview');
+                    $elem.triggerHandler('resize.rsOverview');
                 });
 
                 $viewportDiv.mousedown(function (e) {
                     if (!opts.readonly) {
+                        if (animating) {
+                            (monitorWindow ? $("body,html") : viewport.$obj).stop(true);
+                            animating = false;
+                        }
                         var dragInfo = {
                             initPos: $viewportDiv.offset(),
                             initClick: {
@@ -551,27 +595,17 @@
                 // mouse click on the content: viewport jumps directly to that position
                 $contentDiv.mousedown(function (e) {
                     if (!opts.readonly) {
-                        var $pos = [$elem.position(), $(this).position()];
-                        if (monitorWindow) {
-                            var fromPnt = [$("html").scrollLeft(), $("html").scrollTop()],
-                                toPnt = [
-                                    cache.scaleCoef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
-                                    cache.scaleCoef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
-                                ],
-                                supportsHtml = (fromPnt[0] != 0 || fromPnt[1] != 0);
-
-                            if (fromPnt[0] === 0 && fromPnt[1] === 0) {
-                                fromPnt[0] = $("body").scrollLeft();
-                                fromPnt[1] = $("body").scrollTop();
-                            }
-                            $("html,body").animate({ scrollLeft: toPnt[0], scrollTop: toPnt[1] }, opts.scrollSpeed);
-
-                        } else {
-                            viewport.$obj.animate({
-                                scrollLeft: cache.scaleCoef * (e.pageX - $pos[0].left - $pos[1].left - $viewportDiv.width() / 2),
-                                scrollTop: cache.scaleCoef * (e.pageY - $pos[0].top - $pos[1].top - $viewportDiv.height() / 2)
-                            }, opts.scrollSpeed);
-                        }
+                        var posData = {
+                            container: $elem.position(),
+                            content: $(this).position()
+                        },
+                        toPnt = {
+                            scrollLeft: cache.scaleCoef * (e.pageX - posData.container.left - posData.content.left - $viewportDiv.width() / 2),
+                            scrollTop: cache.scaleCoef * (e.pageY - posData.container.top - posData.content.top - $viewportDiv.height() / 2)
+                        };
+                        scrollTo(toPnt, function () {
+                            bookmarkUtil.checkEvents(e);
+                        });
                         e.preventDefault();
                     }
                 });
@@ -588,7 +622,7 @@
                     bind('create.rsOverview', onCreate);
 
                 // graphical initialization when plugin is called (after page and DOM are loaded)
-                $elem.trigger('resize.rsOverview');
+                $elem.triggerHandler('resize.rsOverview');
 
                 $elem.triggerHandler('create.rsOverview');
             };
@@ -660,17 +694,22 @@
 
     // public access to the default input parameters
     $.fn.rsOverview.defaults = {
-        monitor: $(window),         // The element being monitored by the plug-in. Type: jQuery object.
-        center: true,               // Whether to render the content and viewport reactangles centered in the placeholder area. Type: boolean.
-        autoHide: false,            // Whether to hide the plug-in when the content has the same size or is smaller than the viewport. Type: boolean.
-        readonly: false,            // False: Reacts to mouse/keyboard events; True: Ignores mouse/keyboard events. Type: boolean.
-        scrollSpeed: 'medium',      // Speed used when moving to a selected canvas position or when moving to a bookmark. You can also use a sepecific duration in milliseconds. Type: string or integer.
-        bookmarkClass: 'bookm',     // CSS class(es) for bookmark style. Typically should be 1x1 or 3x3 px square with a distinct background color or border. Type: string.
-        contentClass: 'content',    // CSS class(es) for the outer div representing the content area. Type: string.
-        viewportClass: 'viewport',  // CSS class(es) for the inner div representing the viewport area. Type: string.
-        onCreate: null,             // Event fired after the plug-in has been initialized. Type: function(event)
-        onChangeCtrlState: null,    // Event fired when the UI controls for prev/next/clearAll needs to be disabled/enabled. Type: function(event, kind, enabled)
-        onChangeToggle: null        // Event fired when the UI control for the toggle UI control needs to be pushed down or up. Type: function(event, isMarked)
+        // properties
+        monitor: $(window),             // The element being monitored by the plug-in. Type: jQuery object.
+        center: true,                   // Whether to render the content and viewport reactangles centered in the placeholder area. Type: boolean.
+        autoHide: false,                // Whether to hide the plug-in when the content has the same size or is smaller than the viewport. Type: boolean.
+        readonly: false,                // False: Reacts to mouse/keyboard events; True: Ignores mouse/keyboard events. Type: boolean.
+        scrollSpeed: 'normal',          // Animation speed used when moving to a selected position or when moving to a bookmark. You can also use a sepecific duration in milliseconds. Use 0 for no animation. Type: string or integer.
+        bookmarkClass: 'bookm',         // CSS class(es) for bookmark style. Typically is a small square with a distinct background color or border. Type: string.
+        bookmarkActiveClass: 'active',  // CSS class(es) for the bookmark whose coordinates match the current location. Typically is used for highlighting. Type: string.
+        bookmarkHint: 'Go to bookmark', // Hint message that appears when the user mouses over the bookmark area. Use null to disable hints. Type: string.
+        contentClass: 'content',        // CSS class(es) for the outer div representing the content area. Type: string.
+        viewportClass: 'viewport',      // CSS class(es) for the inner div representing the viewport area. Type: string.
+
+        // events
+        onCreate: null,                 // Event fired after the plug-in has been initialized. Type: function(event)
+        onChangeCtrlState: null,        // Event fired when the UI controls for prev/next/clearAll needs to be disabled/enabled. Type: function(event, kind, enabled)
+        onChangeToggle: null            // Event fired when the UI control for the toggle UI control needs to be pushed down or up. Type: function(event, isMarked)
     };
 
 })(jQuery);

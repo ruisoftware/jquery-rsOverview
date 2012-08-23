@@ -16,11 +16,6 @@
     background-color: orange; /* IE mouse events only work on opaque elements */
 }
 
-.content,
-.viewport {
-    position: absolute;
-}
-
 
 /* Optional styles ******/
 /************************/
@@ -30,14 +25,13 @@ body {
 
 #overviewDoc {
     right: 20px;
-    top: 20px;
-    border: 1px dotted gray;
+    top: 0;
     z-index: 2;
 }
 
 #overviewDiv {
     left: 230px;
-    top: 460px;
+    top: 500px;
 }
 
 .content {
@@ -75,9 +69,20 @@ body {
 }
 
 .bookm {
-    border: 1px black solid;
-    width: 3px;
-    height: 3px;
+    border-radius: 3px;
+    border: 1px #333 dotted;
+    width: 5px;
+    height: 5px;
+}
+
+.bookm:hover {
+    border-style: solid;
+    cursor: pointer;
+}
+
+.bookm.active {
+    border-color: black;
+    border-style: solid;
 }
 
 #bookmarkPaneDoc {
@@ -97,13 +102,13 @@ body {
 #bookmarkPaneOvr {
     position: absolute;
     left: 320px;
-    top: 455px;
+    top: 500px;
 }
 
 #contentPaneOvr {
     position: absolute;
     left: 460px;
-    top: 455px;
+    top: 500px;
 }
 
 fieldset {
