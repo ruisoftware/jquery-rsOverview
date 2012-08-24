@@ -8,7 +8,7 @@
 *
 * Licensed under The MIT License
 * 
-* @version   3.1
+* @version   3.2
 * @since     11.27.2010
 * @author    Jose Rui Santos
 * http://www.ruisoftware.com/
@@ -21,46 +21,47 @@
 *
 * Required markup
 * ==========================
-* Any blocked element can be used as a placeholder for this plug-in.
+* Any element can be used as a placeholder for this plug-in. For example:
 * <div id="overview"></div>
 *
 *
 * Markup generated
 * ==========================
-* Two children div elements are added to the #overview.
+* Two children span elements are added to the #overview.
 * For demonstration purposes, the generated markup is shown here in upper case.
 *
 * <div id="overview">
-*   <DIV class="content"></DIV>
-*   <DIV class="viewport"></DIV>
+*   <SPAN class="content"></SPAN>
+*   <SPAN class="viewport"></SPAN>
 * </div>
 *
-* If there are bookmarks being used, then additional elements are inserted after the viewport block.
-* The following is the markup that contains 3 bookmarks:
+* If there are bookmarks being used, then additional elements are inserted after the viewport element.
+* The following is a markup that contains 3 bookmarks:
 * <div id="overview">
-*   <DIV class="content"></DIV>
-*   <DIV class="viewport"></DIV>
-*   <DIV class="bookm"></DIV>
-*   <DIV class="bookm"></DIV>
-*   <DIV class="bookm"></DIV>
+*   <SPAN class="content"></SPAN>
+*   <SPAN class="viewport"></SPAN>
+*   <SPAN class="bookm"></SPAN>
+*   <SPAN class="bookm"></SPAN>
+*   <SPAN class="bookm"></SPAN>
 * </div>
 *
 *
 * CSS
 * ==========================
-* The placeholder element (#overview) should have a non zero width and height.
+* The placeholder element (#overview) should have some dimension:
 * #overview {
-*     position: fixed;
 *     width: 200px;
 *     height: 300px;
 * }
 * 
-* When the plug-in monitors overflowed elements (not the browser window), then the CSS should be:
+* You might need to positionate the plug-in in some place (left, top, right or bottom)
 * #overview {
-*     position: absolute;
 *     width: 200px;
 *     height: 300px;
+*     left: 100px;
+*     top: 50px;
 * }
+*
 *
 *
 * Methods              Remarks
@@ -110,7 +111,7 @@
 * ============  ==============  ===========================================================================================================
 * bookmarks     String array    Returns all the bookmarks. Each string element from the array has the format 'x#y', where x and y are integers that represent the bookmark location.
 * readonly      boolean         Returns false if the plug-in receives mouse events; true otherwise.
-* center        boolean         Returns false if the two content and viewport rectangules, are positionated on top left corner; True if they are centered relatively to the outer DIV.
+* center        boolean         Returns false if the content and viewport rectangules are positionated on the top left corner; True if they are centered relatively to the parent.
 * autoHide      boolean         Returns false if the plug-in is always visible; true to hide it when the content has the same or smaller size than the viewport.
 * scrollSpeed   integer/string  Returns the current animation speed in ms when moving from one location to other, trigered by mouse click or by bookmark navigation. Use 0 for no animation. The strings 'slow', 'normal' and 'fast' can also be used.
 * Example:
@@ -121,7 +122,7 @@
 * ================  ============  ============================================================================================================
 * bookmarks         String array  Parses the input array and on success, creates all bookmarks from that array. Any previous bookmarks are removed.
 * readonly          boolean       Enables or disables the mouse input
-* center            boolean       Affects the way the two content and viewport rectangules are rendered: centered relatively to the outer DIV or not
+* center            boolean       Affects the way the content and viewport rectangules are rendered: centered relatively to the parent or not
 * autoHide          boolean       If true then the plug-in automatically hides itself when content has the same or smaller size than the viewport
 * scrollSpeed       integer/string 
 * All setters return the value that was just set.
@@ -132,21 +133,21 @@
 *
 * If the size of the content element that is being monited changes, the plug-in must be notified through a call to 'contentSizeChanged' method.
 * Image you have the following markup being used by the plug-in to monitor the document:
-*    <div id="overview"></div>
-* If the document size changes, then the following call must be made:
-* $("#overview").rsOverview('contentSizeChanged');
-* This will render the plug-in to the correct area size.
+*    <div id="album"></div>
+* If the album content increases or decreases, then the following call must be made:
+* $("#album").rsOverview('contentSizeChanged');
+* This notifies the plug-in to render the correct area size.
 *
 *
 * This plug-in follows all good jQuery practises, namely:
 *  - The possibility to use more than one instance on the same web page
-*  - The possibility to work with more than one instance simultaneously, e.g. $("#overviewDoc, #overviewDiv").rsOverview('bookmarkToggle');
+*  - The possibility to work with more than one instance simultaneously, e.g. $("#overviewDoc, #overviewPhotos").rsOverview('bookmarkToggle');
 *  - Except for getter/setter calls, it respects jQuery chaining, which allows calling multiple methods on the same statement.
 */
 (function ($) {
     var OverviewClass = function ($elem, opts, scrollbarPixels) {
-        var $contentDiv = null,
-            $viewportDiv = null,
+        var $contentRect = null,
+            $viewportRect = null,
             monitorWindow = opts.monitor === window || $(opts.monitor).is($(window)),
             animating = false,
             cache = {
@@ -249,16 +250,16 @@
                     var key = x + "#" + y,
                         idx = $.inArray(key, this.marks);
                     if (idx === -1) {
-                        var pos = $viewportDiv.position(),
-                            $bookm = $("<div>").addClass(opts.bookmarkClass).appendTo($elem);
+                        // create a new bookmark
+                        var pos = $viewportRect.position(),
+                            $bookm = $("<span>").addClass(opts.bookmarkClass).css('position', 'absolute').appendTo($elem);
 
                         if (opts.bookmarkHint) {
                             $bookm.attr('title', opts.bookmarkHint);
                         }
                         $bookm.css({
-                            'position': 'absolute',
-                            'left': Math.round(pos.left + ($viewportDiv.width() - $bookm.outerWidth()) / 2) + 'px',
-                            'top': Math.round(pos.top + ($viewportDiv.height() - $bookm.outerHeight()) / 2) + 'px'
+                            'left': Math.round(pos.left + ($viewportRect.width() - $bookm.outerWidth()) / 2) + 'px',
+                            'top': Math.round(pos.top + ($viewportRect.height() - $bookm.outerHeight()) / 2) + 'px'
                         }).mousedown(function (e) {
                             if (!opts.readonly) {
                                 var idx = bookmarkUtil.$allBks.index(this);
@@ -276,6 +277,7 @@
                         this.qt = this.marks.length;
                         this.currIdx = this.qt - 1;
                     } else {
+                        // delete current bookmark
                         this.marks.splice(idx, 1); // delete
                         this.$allBks.eq(idx).remove(); // from DOM
                         this.$allBks.splice(idx, 1); // from jQuery "array"
@@ -382,17 +384,34 @@
             },
 
             scrollTo = function (toPnt, onComplete) {
-                var $anim = monitorWindow ? $("body,html") : viewport.$obj;
+                var $anim = monitorWindow ? $("html,body") : viewport.$obj;
                 if (animating) {
                     $anim.stop(true);
                 }
-                animating = true;
-                $anim.animate(toPnt, opts.scrollSpeed, function (event) {
-                    animating = false;
-                    if (onComplete !== undefined) {
-                        onComplete();
+                // will animate? If the toPnt is the current point, then no need to animate
+                var currPos = [0, 0];
+                $anim.each(function () { // for "html,body" find out which one actually contains the scroll information
+                    var $this = $(this),
+                        x = $this.scrollLeft(),
+                        y = $this.scrollTop();
+                    if (x != 0 || y != 0) {
+                        currPos[0] = x;
+                        currPos[1] = y;
+                        return false;
                     }
                 });
+                if (currPos[0] != toPnt.scrollLeft || currPos[1] != toPnt.scrollTop) {
+                    if (opts.bookmarkClass && opts.bookmarkActiveClass) {
+                        bookmarkUtil.$allBks.removeClass(opts.bookmarkActiveClass);
+                    }
+                    animating = true;
+                    $anim.animate(toPnt, opts.scrollSpeed, function (event) {
+                        animating = false;
+                        if (onComplete !== undefined) {
+                            onComplete();
+                        }
+                    });
+                }
             },
 
             getXScrollBarPixels = function () {
@@ -421,7 +440,7 @@
                     }
                     $elem.show();
                 } else {
-                    if ($elem.is(':hidden')) {
+                    if ($elem.css('display') == 'none') {
                         $elem.show();
                     }
                 }
@@ -439,7 +458,7 @@
                 // compute inner DIV size that corresponds to the size of the content being monitored
                 var calcWidth = content.sizeX / cache.scaleCoef,
                     calcHeight = content.sizeY / cache.scaleCoef;
-                $contentDiv.width(Math.round(calcWidth)).height(Math.round(calcHeight)).css({
+                $contentRect.width(Math.round(calcWidth)).height(Math.round(calcHeight)).css({
                     'left': Math.round(opts.center ? (elementSize.x - calcWidth) / 2 : 0) + 'px',
                     'top': Math.round(opts.center ? (elementSize.y - calcHeight) / 2 : 0) + 'px'
                 });
@@ -449,12 +468,12 @@
 
             onRender = function (event, needResize) {
                 // compute inner DIV size and position that corresponds to the size and position of the viewport monitored
-                var pos = $contentDiv.position();
+                var pos = $contentRect.position();
                 if (needResize) {
                     var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef,
                         calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.scaleCoef;
 
-                    $viewportDiv.width(Math.round(calcWidth)).height(Math.round(calcHeight));
+                    $viewportRect.width(Math.round(calcWidth)).height(Math.round(calcHeight));
 
                     for (var i in bookmarkUtil.marks) {
                         var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
@@ -467,7 +486,7 @@
                 }
                 pos.left = viewport.$obj.scrollLeft() / cache.scaleCoef + (opts.center ? pos.left : 0);
                 pos.top = viewport.$obj.scrollTop() / cache.scaleCoef + (opts.center ? pos.top : 0);
-                $viewportDiv.css({
+                $viewportRect.css({
                     'left': Math.round(pos.left) + 'px',
                     'top': Math.round(pos.top) + 'px'
                 });
@@ -534,12 +553,9 @@
                 }
             },
             init = function () {
-                $contentDiv = $("<div>").addClass(opts.contentClass).css({
-                    'overflow': 'hidden',
-                    'position': 'absolute'
-                });
-                $viewportDiv = $("<div>").addClass(opts.viewportClass).css('position', 'absolute');
-                $elem.append($contentDiv).append($viewportDiv);
+                $contentRect = $("<span>").addClass(opts.contentClass).css('position', 'absolute');
+                $viewportRect = $("<span>").addClass(opts.viewportClass).css('position', 'absolute');
+                $elem.css('position', monitorWindow ? 'fixed' : 'absolute').append($contentRect).append($viewportRect);
 
                 // elements being monitorized for scroll and resize events
                 viewport.$obj = $(opts.monitor);
@@ -556,17 +572,17 @@
                     $elem.triggerHandler('resize.rsOverview');
                 });
 
-                $viewportDiv.mousedown(function (e) {
+                $viewportRect.mousedown(function (e) {
                     if (!opts.readonly) {
                         if (animating) {
-                            (monitorWindow ? $("body,html") : viewport.$obj).stop(true);
+                            (monitorWindow ? $("html,body") : viewport.$obj).stop(true);
                             animating = false;
                         }
                         var dragInfo = {
-                            initPos: $viewportDiv.offset(),
+                            initPos: $viewportRect.offset(),
                             initClick: {
-                                X: e.pageX,
-                                Y: e.pageY
+                                x: e.pageX,
+                                y: e.pageY
                             }
                         };
 
@@ -575,11 +591,11 @@
                             return false;
                         };
 
-                        $viewportDiv.bind('mousemove.rsOverview', function (e) {
-                            var pos = [$elem.position(), $contentDiv.position()];
+                        $viewportRect.bind('mousemove.rsOverview', function (e) {
+                            var pos = [$elem.position(), $contentRect.position()];
                             viewport.$obj.
-                                    scrollLeft(cache.scaleCoef * (e.pageX - dragInfo.initClick.X + dragInfo.initPos.left - pos[0].left - pos[1].left)).
-                                    scrollTop(cache.scaleCoef * (e.pageY - dragInfo.initClick.Y + dragInfo.initPos.top - pos[0].top - pos[1].top));
+                                    scrollLeft(cache.scaleCoef * (e.pageX - dragInfo.initClick.x + dragInfo.initPos.left - pos[0].left - pos[1].left)).
+                                    scrollTop(cache.scaleCoef * (e.pageY - dragInfo.initClick.y + dragInfo.initPos.top - pos[0].top - pos[1].top));
                         });
                         e.preventDefault();
                     }
@@ -588,20 +604,20 @@
                 // the mouseup event might happen outside the plugin, so to make sure the unbind always runs, it must done on body level
                 $("body").mouseup(function () {
                     if (!opts.readonly) {
-                        $viewportDiv.unbind('mousemove.rsOverview');
+                        $viewportRect.unbind('mousemove.rsOverview');
                     }
                 });
 
                 // mouse click on the content: viewport jumps directly to that position
-                $contentDiv.mousedown(function (e) {
+                $contentRect.mousedown(function (e) {
                     if (!opts.readonly) {
                         var posData = {
                             container: $elem.position(),
                             content: $(this).position()
                         },
                         toPnt = {
-                            scrollLeft: cache.scaleCoef * (e.pageX - posData.container.left - posData.content.left - $viewportDiv.width() / 2),
-                            scrollTop: cache.scaleCoef * (e.pageY - posData.container.top - posData.content.top - $viewportDiv.height() / 2)
+                            scrollLeft: cache.scaleCoef * (e.pageX - posData.container.left - posData.content.left - $viewportRect.width() / 2),
+                            scrollTop: cache.scaleCoef * (e.pageY - posData.container.top - posData.content.top - $viewportRect.height() / 2)
                         };
                         scrollTo(toPnt, function () {
                             bookmarkUtil.checkEvents(e);

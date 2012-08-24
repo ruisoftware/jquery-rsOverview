@@ -1,13 +1,11 @@
 /* Mandatory styles *****/
 /************************/
 #overviewDoc {
-    position: fixed;
     width: 100px;
     height: 150px;
 }
 
 #overviewDiv {
-    position: absolute;
     width: 80px;
     height: 50px;
 }
@@ -70,19 +68,23 @@ body {
 
 .bookm {
     border-radius: 3px;
-    border: 1px #333 dotted;
+    border: 1px gray solid;
     width: 5px;
     height: 5px;
 }
 
 .bookm:hover {
-    border-style: solid;
+    border-color: black;
     cursor: pointer;
 }
 
 .bookm.active {
-    border-color: black;
+    background-color: gray;
     border-style: solid;
+}
+
+.bookm.active:hover {
+    border-color: gray;
 }
 
 #bookmarkPaneDoc {
