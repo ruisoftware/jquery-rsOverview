@@ -50,11 +50,11 @@
             });
             $("#btnDoc_add").click(function () {
                 $("<p>content appended to the document manually</p>").appendTo($("body"));
-                $("#overviewDoc").rsOverview('contentSizeChanged'); // notify plug-in that needs to rescale, due to change in content size
+                $("#overviewDoc").rsOverview('invalidate'); // notify plug-in that needs to rescale, due to change in content size
             });
             $("#btnDoc_del").click(function () {
                 $("body > p:last-child").remove();
-                $("#overviewDoc").rsOverview('contentSizeChanged'); // notify plug-in that needs to rescale, due to change in content size
+                $("#overviewDoc").rsOverview('invalidate'); // notify plug-in that needs to rescale, due to change in content size
             });
 
 
@@ -73,11 +73,11 @@
             });
             $("#btnOvr_add").click(function () {
                 $("<p>content appended to the overviewed element manually</p>").appendTo($("#overflowed"));
-                $("#overviewDiv").rsOverview('contentSizeChanged'); // notify plug-in that needs to rescale, due to change in content size
+                $("#overviewDiv").rsOverview('invalidate'); // notify plug-in that needs to rescale, due to change in content size
             });
             $("#btnOvr_del").click(function () {
                 $("#overflowed p:last-child").remove();
-                $("#overviewDiv").rsOverview('contentSizeChanged'); // notify plug-in that needs to rescale, due to change in content size
+                $("#overviewDiv").rsOverview('invalidate'); // notify plug-in that needs to rescale, due to change in content size
             });
         });
     </script>
@@ -95,12 +95,12 @@
     <h1>Demonstration of the jQuery Overview plug-in</h1>
 
     <h2>What it is?</h2>
-    <p>This plug-in provides an overview of the whole page to the user.<br />
+    <p>This plug-in provides an overview of the whole page to the user, by reacting to changes in the horizontal, vertical or both scrolling positions, as well the viewport and content size.<br />
     It renders two rectangles, one inside another. The darkest one represents the viewport area (your browser window).<br />
     The lightest rectangle, represents the entire document area.<br />
     This allows anyone to quickly jump to any position within the document, bookmark several locations and visit them later on.</p>
     <p>It provides methods to load/save all bookmarks between page transitions, so that your users can get their bookmarks back everytime they return to an old page.</p>
-    <p>Also works on overflowed elements.</p>
+    <p>Also works on overflowed elements and is an alternative to implement your own scroll bars, when 'direction' parameter is either horizontal or vertical.</p>
     <p>It is very lightweight and highly customizable through CSS.</p>
 
     <h2>How it works?</h2>
@@ -154,7 +154,7 @@
             <ul>
                 <li>Drag and move the viewport (the small darker rectangle)</li>
                 <li>Click on the big rectangle for fast scroll</li>
-                <li>Scroll and resize your browser window.</li>
+                <li>Keep an eye on the red/orange instance, while you scroll and resize your browser window.</li>
                 <li>Click on the add/remove content buttons and watch how the plug-in reacts to changes in content size.</li>
             </ul>
         </li>
@@ -162,6 +162,7 @@
             <ul>
                 <li>Click on the Toggle bookmark, to save/clear the current position.</li>
                 <li>Scroll to a different location and create another bookmark. Now click on the prev/next buttons</li>
+                <li>Click on the small bookmark squares</li>
             </ul>
         </li>
     </ul>

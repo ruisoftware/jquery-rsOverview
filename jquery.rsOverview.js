@@ -2,13 +2,16 @@
 * jQuery Overview - A viewport/content length overview
 * ====================================================
 * jQuery Overview displays two rectangles representing the content and the position of the viewport within the content.
-* It provides a visual interface to the user of the current viewport location within the whole document.
+* It provides a navigation interface to the user of the current viewport location within the whole document.
 * Optionally, the user can bookmark specific locations in the page. These bookmarks can be loaded and saved.
 * Can also work for overflowed elements, that is, when you have a blocked element with content that overflows it, causing scroll bars to appear.
 *
+* With the 'direction' parameter, introduced in version 3.3, you can monitor only the vertical scroll position, the horizontal scroll position or both scroll positions.
+* A vertical or horizontal only mode allows you to use this plug-in for something that resembles a scroll bar.
+*
 * Licensed under The MIT License
 * 
-* @version   3.2
+* @version   3.3
 * @since     11.27.2010
 * @author    Jose Rui Santos
 * http://www.ruisoftware.com/
@@ -27,7 +30,7 @@
 *
 * Markup generated
 * ==========================
-* Two children span elements are added to the #overview.
+* Two children span elements are added to the plug-in container.
 * For demonstration purposes, the generated markup is shown here in upper case.
 *
 * <div id="overview">
@@ -50,23 +53,16 @@
 * ==========================
 * The placeholder element (#overview) should have some dimension:
 * #overview {
+*     position: absolute;
 *     width: 200px;
 *     height: 300px;
 * }
-* 
-* You might need to positionate the plug-in in some place (left, top, right or bottom)
-* #overview {
-*     width: 200px;
-*     height: 300px;
-*     left: 100px;
-*     top: 50px;
-* }
-*
+* To monitor overflowed elements, you might set your placeholder to position absolute, and for the whole document, use position fixed.
 *
 *
 * Methods              Remarks
 * ===================  ==================================================================================================================
-* contentSizeChanged   Call this method when content has been changed dynamically. It notifies the plug-in to rescale to the correct size
+* invalidate           Call this method when content has been changed dynamically. It notifies the plug-in to rescale to the correct size
 * toggleBk             Create/remove a bookmark in the current scroll position. Typically called from a "Toggle bookmark" control.
 * clearBk              Removes all bookmarks created so far. Typically called from a "Clear all" control.
 * prevBk               Scrolls the content backwards to previous bookmark
@@ -88,7 +84,7 @@
 * $.fn.rsOverview.defaults.autoHide = true;
 * 
 * 
-* Event            Remarks
+* Event                Remarks
 * ===================  ==================================================================================================================
 * For documentation regarding events, please check the bottom of this file.
 *
@@ -109,33 +105,35 @@
 *
 * Getter        Return          Remarks
 * ============  ==============  ===========================================================================================================
-* bookmarks     String array    Returns all the bookmarks. Each string element from the array has the format 'x#y', where x and y are integers that represent the bookmark location.
 * readonly      boolean         Returns false if the plug-in receives mouse events; true otherwise.
 * center        boolean         Returns false if the content and viewport rectangules are positionated on the top left corner; True if they are centered relatively to the parent.
 * autoHide      boolean         Returns false if the plug-in is always visible; true to hide it when the content has the same or smaller size than the viewport.
 * scrollSpeed   integer/string  Returns the current animation speed in ms when moving from one location to other, trigered by mouse click or by bookmark navigation. Use 0 for no animation. The strings 'slow', 'normal' and 'fast' can also be used.
+* bookmarks     array           Returns all the bookmarks. The type of each array element, depends on the direction parameter:
+*                               If direction is 'horizontal', then each element is an integer that represents the horizontal scrolling position. Example: [5, 12];
+*                               If direction is 'vertical', then each element is an integer that represents the vertical scrolling position. Example: [11, 80, 30].
+*                               If direction is other (or 'both'), then each element is two integers array, that represents the horizontal and vertical scrolling position. Example: [[6,44], [40, 120], [0, 130]].
 * Example:
     var isReadOnly = $("#overview").rsOverview('option', 'readonly');
 *
 *
-* Setter            Input         Remarks
-* ================  ============  ============================================================================================================
-* bookmarks         String array  Parses the input array and on success, creates all bookmarks from that array. Any previous bookmarks are removed.
-* readonly          boolean       Enables or disables the mouse input
-* center            boolean       Affects the way the content and viewport rectangules are rendered: centered relatively to the parent or not
-* autoHide          boolean       If true then the plug-in automatically hides itself when content has the same or smaller size than the viewport
-* scrollSpeed       integer/string 
+* Setter            Input          Remarks
+* ================  =============  ============================================================================================================
+* bookmarks         array          Parses the input array and on success, creates all bookmarks from that array. Any previous bookmarks are removed.
+* readonly          boolean        Enables or disables the mouse input
+* center            boolean        Affects the way the content and viewport rectangules are rendered: centered relatively to the parent or not
+* autoHide          boolean        If true then the plug-in automatically hides itself when content has the same or smaller size than the viewport
+* scrollSpeed       integer/string Amount of time that it takes to move from current scroll position to the point where user clicked (in content area). Use 0 for no animation.
 * All setters return the value that was just set.
 * Example:
-    $("#overview").rsOverview('option', 'bookmarks', ['0#0', '0#100', '50#800']);  // loads 3 bookmarks. Each bookmark is a 'xxxx#yyyy' string where 
-                                                                                   // 'xxxx' is horizontal scroll position and 'yyyy' is the vertical scroll position
+    $("#overview").rsOverview('option', 'bookmarks', [[0,0], [0,100], [50,800]]);  // loads 3 bookmarks.
 *
 *
-* If the size of the content element that is being monited changes, the plug-in must be notified through a call to 'contentSizeChanged' method.
+* If the size of the content element that is being monited changes, the plug-in must be notified through a call to 'invalidate' method.
 * Image you have the following markup being used by the plug-in to monitor the document:
 *    <div id="album"></div>
 * If the album content increases or decreases, then the following call must be made:
-* $("#album").rsOverview('contentSizeChanged');
+* $("#album").rsOverview('invalidate');
 * This notifies the plug-in to render the correct area size.
 *
 *
@@ -233,8 +231,14 @@
                 qt: 0,
                 marks: [],
                 getPnt: function (key) {
-                    var k = key.split("#");
-                    return { scrollLeft: parseInt(k[0], 10), scrollTop: parseInt(k[1], 10) };
+                    switch (opts.direction) {
+                        case 'horizontal':
+                            return { scrollLeft: key };
+                        case 'vertical':
+                            return { scrollTop: key };
+                        default:
+                            return { scrollLeft: key[0], scrollTop: key[1] };
+                    }
                 },
                 checkEvents: function (event) {
                     if (opts.bookmarkClass) {
@@ -246,21 +250,56 @@
                         }
                     }
                 },
+                arrayIndexOf: function (key) {
+                    switch (opts.direction) {
+                        case 'horizontal':
+                        case 'vertical':
+                            return $.inArray(key, this.marks);
+                        default:
+                            for (var i = 0; i < this.marks.length; ++i) {
+                                var mark = this.marks[i];
+                                if (mark[0] == key[0] && mark[1] == key[1]) {
+                                    return i;
+                                }
+                            }
+                    }
+                    return -1;
+                },
                 doToggle: function (event, x, y) {
-                    var key = x + "#" + y,
-                        idx = $.inArray(key, this.marks);
+                    var key = opts.direction == 'horizontal' ? x : (opts.direction == 'vertical' ? y : [x, y]),
+                        idx = this.arrayIndexOf(key);
                     if (idx === -1) {
                         // create a new bookmark
                         var pos = $viewportRect.position(),
-                            $bookm = $("<span>").addClass(opts.bookmarkClass).css('position', 'absolute').appendTo($elem);
+                            $bookm = $("<span>").addClass(opts.bookmarkClass).css('position', 'absolute').appendTo($elem); 
 
                         if (opts.bookmarkHint) {
                             $bookm.attr('title', opts.bookmarkHint);
                         }
-                        $bookm.css({
-                            'left': Math.round(pos.left + ($viewportRect.width() - $bookm.outerWidth()) / 2) + 'px',
-                            'top': Math.round(pos.top + ($viewportRect.height() - $bookm.outerHeight()) / 2) + 'px'
-                        }).mousedown(function (e) {
+                        switch (opts.direction) {
+                            case 'horizontal':
+                                $bookm.css({
+                                    'left': Math.round(pos.left + ($viewportRect.width() - $bookm.outerWidth()) / 2) + 'px',
+                                    'top': 0,
+                                    'bottom': 0,
+                                    'height': 'auto'
+                                });
+                                break;
+                            case 'vertical':
+                                $bookm.css({
+                                    'left': 0,
+                                    'right': 0,
+                                    'width': 'auto',
+                                    'top': Math.round(pos.top + ($viewportRect.height() - $bookm.outerHeight()) / 2) + 'px'
+                                });
+                                break;
+                            default:
+                                $bookm.css({
+                                    'left': Math.round(pos.left + ($viewportRect.width() - $bookm.outerWidth()) / 2) + 'px',
+                                    'top': Math.round(pos.top + ($viewportRect.height() - $bookm.outerHeight()) / 2) + 'px'
+                                });
+                        }
+                        $bookm.mousedown(function (e) {
                             if (!opts.readonly) {
                                 var idx = bookmarkUtil.$allBks.index(this);
                                 if (idx > -1 && idx < bookmarkUtil.qt) { // found the bookmark ?
@@ -333,42 +372,67 @@
                     }
                 },
                 getMarkedIdx: function () {
-                    return $.inArray(content.$obj.scrollLeft() + "#" + content.$obj.scrollTop(), this.marks);
+                    switch (opts.direction) {
+                        case 'horizontal':
+                            return $.inArray(content.$obj.scrollLeft(), this.marks);
+                        case 'vertical':
+                            return $.inArray(content.$obj.scrollTop(), this.marks);
+                        default:
+                            return this.arrayIndexOf([content.$obj.scrollLeft(), content.$obj.scrollTop()]);
+                    }
+                },
+                isInteger: function (num) {
+                    return typeof num === "number" && num % 1 === 0;
                 },
                 parseLoad: function (bookmarks) {
                     var list = [];
                     if (bookmarks) {
                         if (bookmarks instanceof Array) {
-                            for (var i in bookmarks) {
-                                var elem = bookmarks[i];
-                                if (elem) {
-                                    try {
-                                        var pair = elem.split('#');
-                                    } catch (er) {
-                                        pair = null; // elem is not a string. Will throw the exception below
-                                    }
-                                    if (pair && pair.length === 2) {
-                                        var pnt = [parseInt(pair[0], 10), parseInt(pair[1], 10)];
-                                        if (!isNaN(pnt[0]) && !isNaN(pnt[1])) {
-                                            list.push(pnt);
-                                            continue;
-                                        }
+                            var qt = bookmarks.length;
+                            if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
+                                for (var i = 0; i < qt; ++i) {
+                                    var elem = bookmarks[i];
+                                    if (this.isInteger(elem)) {
+                                        list.push(elem);
+                                    } else {
+                                        throw 'Invalid element ' + elem + ' at index ' + i + '. Expected an integer. Example: [0, 34, 23]';
                                     }
                                 }
-                                throw 'Invalid element ' + elem + ' at index ' + i + '. Expected a "x#y" string object, where x and y are integers. Example: ["0#0","40#80","40#300"]';
+                            } else {
+                                for (var i = 0; i < qt; ++i) {
+                                    var elem = bookmarks[i];
+                                    if (elem instanceof Array && elem.length === 2 && this.isInteger(elem[0]) && this.isInteger(elem[1])) {
+                                        list.push(elem);
+                                        continue;
+                                    }
+                                    throw 'Invalid element ' + elem + ' at index ' + i + '. Expected a [x, y] two integers array. Example: [[0, 0], [40, 80], [40, 300]]';
+                                }
                             }
                         } else {
-                            throw 'Expected an array of strings "x#y", where x and y are integers. Example: ["0#0","40#80","40#300"]';
+                            switch (opts.direction) {
+                                case 'horizontal':
+                                case 'vertical':
+                                    throw 'Expected an array of integers. Example: [0, 80, 300]';
+                                default:
+                                    throw 'Expected an array of [x, y] arrays, where x and y are integers. Example: [[0, 0], [40, 80], [40, 300]]';
+                            }
                         }
                     }
                     return list;
                 },
                 loadMarks: function (event, bookmarks) {
                     try {
-                        var loaded = this.parseLoad(bookmarks);
+                        var loaded = this.parseLoad(bookmarks),
+                            qt = loaded.length;
                         this.doClearAll(null);
-                        for (var i in loaded) {
-                            this.doToggle(null, loaded[i][0], loaded[i][1]);
+                        if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
+                            for (var i = 0; i < qt; ++i) {
+                                this.doToggle(null, loaded[i], loaded[i]);
+                            }
+                        } else {
+                            for (var i = 0; i < qt; ++i) {
+                                this.doToggle(null, loaded[i][0], loaded[i][1]);
+                            }
                         }
                         $elem.triggerHandler('resize.rsOverview'); // to correctly render the marks
                         this.checkEvents(event);
@@ -389,7 +453,7 @@
                     $anim.stop(true);
                 }
                 // will animate? If the toPnt is the current point, then no need to animate
-                var currPos = [0, 0];
+                var currPos = [0, 0], willChange;
                 $anim.each(function () { // for "html,body" find out which one actually contains the scroll information
                     var $this = $(this),
                         x = $this.scrollLeft(),
@@ -400,15 +464,30 @@
                         return false;
                     }
                 });
-                if (currPos[0] != toPnt.scrollLeft || currPos[1] != toPnt.scrollTop) {
+
+                switch (opts.direction) {
+                    case 'horizontal':
+                        willChange = currPos[0] != toPnt.scrollLeft;
+                        break;
+                    case 'vertical':
+                        willChange = currPos[1] != toPnt.scrollTop;
+                        break;
+                    default:
+                        willChange = currPos[0] != toPnt.scrollLeft || currPos[1] != toPnt.scrollTop;
+                }
+                if (willChange) {
                     if (opts.bookmarkClass && opts.bookmarkActiveClass) {
                         bookmarkUtil.$allBks.removeClass(opts.bookmarkActiveClass);
                     }
                     animating = true;
-                    $anim.animate(toPnt, opts.scrollSpeed, function (event) {
-                        animating = false;
-                        if (onComplete !== undefined) {
-                            onComplete();
+                    $anim.animate(toPnt, {
+                        duration: opts.scrollSpeed, 
+                        queue: false,
+                        complete: function (event) {
+                            animating = false;
+                            if (onComplete !== undefined) {
+                                onComplete();
+                            }
                         }
                     });
                 }
@@ -423,6 +502,13 @@
             },
 
             onResize = function (event) {
+                var needsToHide = function () {
+                    switch(opts.direction) {
+                        case 'horizontal': return content.sizeX <= viewport.sizeX;
+                        case 'vertical': return content.sizeY <= viewport.sizeY;
+                        default: return content.sizeX <= viewport.sizeX && content.sizeY <= viewport.sizeY;
+                    }
+                };
                 if (monitorWindow) {
                     content.resized();
                 } else {
@@ -434,7 +520,7 @@
                 viewport.resized();
 
                 if (opts.autoHide) {
-                    if (content.sizeX <= viewport.sizeX && content.sizeY <= viewport.sizeY) {
+                    if (needsToHide()) {
                         $elem.hide();
                         return;
                     }
@@ -444,38 +530,83 @@
                         $elem.show();
                     }
                 }
-
+                
                 var elementSize = {
                     x: $elem.width(),
                     y: $elem.height()
-                }, coefX = content.sizeX / elementSize.x,
-                   coefY = content.sizeY / elementSize.y;
+                }, coefX = coefY = 0;
+                
+                if (opts.direction != 'vertical') {
+                    coefX = content.sizeX / elementSize.x;
+                }
+                if (opts.direction != 'horizontal') {
+                    coefY = content.sizeY / elementSize.y;
+                }
                 cache.scaleCoef = Math.max(coefX, coefY);
-                coefX = (viewport.sizeX - getYScrollBarPixels()) / elementSize.x;
-                coefY = (viewport.sizeY - getXScrollBarPixels()) / elementSize.y;
+                
+                if (opts.direction != 'vertical') {
+                    coefX = (viewport.sizeX - getYScrollBarPixels()) / elementSize.x;
+                }
+                if (opts.direction != 'horizontal') {
+                    coefY = (viewport.sizeY - getXScrollBarPixels()) / elementSize.y;
+                }
                 cache.scaleCoef = Math.max(Math.max(coefX, coefY), cache.scaleCoef);
 
-                // compute inner DIV size that corresponds to the size of the content being monitored
-                var calcWidth = content.sizeX / cache.scaleCoef,
-                    calcHeight = content.sizeY / cache.scaleCoef;
-                $contentRect.width(Math.round(calcWidth)).height(Math.round(calcHeight)).css({
-                    'left': Math.round(opts.center ? (elementSize.x - calcWidth) / 2 : 0) + 'px',
-                    'top': Math.round(opts.center ? (elementSize.y - calcHeight) / 2 : 0) + 'px'
-                });
-
+                if (opts.direction != 'horizontal' && opts.direction != 'vertical') {
+                    // compute inner DIV size that corresponds to the size of the content being monitored
+                    var calcWidth = content.sizeX / cache.scaleCoef,
+                        calcHeight = content.sizeY / cache.scaleCoef;
+                    $contentRect.width(Math.round(calcWidth)).height(Math.round(calcHeight)).css({
+                        'left': Math.round(opts.center ? (elementSize.x - calcWidth) / 2 : 0) + 'px',
+                        'top': Math.round(opts.center ? (elementSize.y - calcHeight) / 2 : 0) + 'px'
+                    });
+                }
                 $elem.triggerHandler('render.rsOverview', [true]);
             },
 
-            onRender = function (event, needResize) {
-                // compute inner DIV size and position that corresponds to the size and position of the viewport monitored
-                var pos = $contentRect.position();
-                if (needResize) {
+            doRenderHorizontal = function (needResize) {
+                if (needResize) {                
+                    var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef;
+                    $viewportRect.width(Math.round(calcWidth));
+
+                    for (var i = 0; i < bookmarkUtil.marks.length; ++i) {
+                        var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
+                            $bookm = bookmarkUtil.$allBks.eq(i);
+                        $bookm.css({
+                            'left': Math.round((calcWidth - $bookm.outerWidth()) / 2 + pnt.scrollLeft / cache.scaleCoef) + 'px',
+                            'top': 0,
+                            'bottom': 0
+                        });
+                    }
+                }
+                $viewportRect.css('left', Math.round(viewport.$obj.scrollLeft() / cache.scaleCoef) + 'px');
+            },
+            
+            doRenderVertical = function (needResize) {
+                if (needResize) {                
+                    var calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.scaleCoef;
+                    $viewportRect.height(Math.round(calcHeight));
+
+                    for (var i = 0; i < bookmarkUtil.marks.length; ++i) {
+                        var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
+                            $bookm = bookmarkUtil.$allBks.eq(i);
+                        $bookm.css({
+                            'top': Math.round((calcHeight - $bookm.outerHeight()) / 2 + pnt.scrollTop / cache.scaleCoef) + 'px',
+                            'left': 0,
+                            'right': 0
+                        });
+                    }
+                }
+                $viewportRect.css('top', Math.round(viewport.$obj.scrollTop() / cache.scaleCoef) + 'px');
+            },
+            
+            doRenderBoth = function (pos, needResize) {
+                if (needResize) {                
                     var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef,
                         calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.scaleCoef;
-
                     $viewportRect.width(Math.round(calcWidth)).height(Math.round(calcHeight));
 
-                    for (var i in bookmarkUtil.marks) {
+                    for (var i = 0; i < bookmarkUtil.marks.length; ++i) {
                         var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
                             $bookm = bookmarkUtil.$allBks.eq(i);
                         $bookm.css({
@@ -490,10 +621,53 @@
                     'left': Math.round(pos.left) + 'px',
                     'top': Math.round(pos.top) + 'px'
                 });
-
+            },
+            onRender = function (event, needResize) {
+                // compute inner element size and position that corresponds to the size and position of the viewport monitored
+                switch (opts.direction) {
+                    case 'horizontal':
+                        doRenderHorizontal(needResize);
+                        break;
+                    case 'vertical':
+                        doRenderVertical(needResize);
+                        break;
+                    default:
+                        doRenderBoth($contentRect.position(), needResize);
+                }
                 if (!animating) {
                     bookmarkUtil.checkEvents(event);
                 }
+            },
+            onMouseWheel = function (event) {
+                var delta = {x: 0, y: 0};
+                if (event.wheelDelta === undefined && event.originalEvent !== undefined && (event.originalEvent.wheelDelta !== undefined || event.originalEvent.detail !== undefined)) { 
+                    event = event.originalEvent;
+                }
+                if (event.wheelDelta) { 
+                    delta.y = event.wheelDelta/120;
+                }
+                if (event.detail) {
+                    delta.y = -event.detail/3;
+                }
+                var evt = event || window.event;
+                if (evt.axis !== undefined && evt.axis === evt.HORIZONTAL_AXIS) {
+                    delta.x = - delta.y;
+                    delta.y = 0;
+                }
+                if (evt.wheelDeltaY !== undefined) {
+                    delta.y = evt.wheelDeltaY/120;
+                }
+                if (evt.wheelDeltaX !== undefined) { 
+                    delta.x = - evt.wheelDeltaX/120;
+                }
+
+                event.preventDefault ? event.preventDefault() : event.returnValue = false; // prevents scrolling
+                if (opts.direction == 'horizontal') {
+                    viewport.$obj.scrollLeft(viewport.$obj.scrollLeft() - delta.y*opts.mousewheel);
+                } else {
+                    viewport.$obj.scrollTop(viewport.$obj.scrollTop() - delta.y*opts.mousewheel);
+                }
+                return false;
             },
             onToggleBk = function (event) {
                 if (opts.bookmarkClass) {
@@ -555,7 +729,17 @@
             init = function () {
                 $contentRect = $("<span>").addClass(opts.contentClass).css('position', 'absolute');
                 $viewportRect = $("<span>").addClass(opts.viewportClass).css('position', 'absolute');
-                $elem.css('position', monitorWindow ? 'fixed' : 'absolute').append($contentRect).append($viewportRect);
+                $elem.append($contentRect).append($viewportRect);
+                if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
+                    $contentRect.css({ 'left': 0, 'top': 0, 'bottom': 0, 'right': 0 });
+                }
+                switch (opts.direction) {
+                    case 'horizontal':
+                        $viewportRect.css({ 'top': 0, 'bottom': 0 });
+                        break;
+                    case 'vertical':
+                        $viewportRect.css({ 'left': 0, 'right': 0 });
+                }
 
                 // elements being monitorized for scroll and resize events
                 viewport.$obj = $(opts.monitor);
@@ -571,6 +755,9 @@
                 }).resize(function () {
                     $elem.triggerHandler('resize.rsOverview');
                 });
+                if (opts.mousewheel !== 0) {
+                    (monitorWindow? $(window) : viewport.$obj).bind('DOMMouseScroll.rsOverview mousewheel.rsOverview', onMouseWheel);
+                }
 
                 $viewportRect.mousedown(function (e) {
                     if (!opts.readonly) {
@@ -591,41 +778,66 @@
                             return false;
                         };
 
-                        $viewportRect.bind('mousemove.rsOverview', function (e) {
-                            var pos = [$elem.position(), $contentRect.position()];
-                            viewport.$obj.
-                                    scrollLeft(cache.scaleCoef * (e.pageX - dragInfo.initClick.x + dragInfo.initPos.left - pos[0].left - pos[1].left)).
-                                    scrollTop(cache.scaleCoef * (e.pageY - dragInfo.initClick.y + dragInfo.initPos.top - pos[0].top - pos[1].top));
+                        $(document).bind('mousemove.rsOverview', function (e) {
+                            switch (opts.direction) {
+                                case 'horizontal':
+                                    viewport.$obj.
+                                        scrollLeft(cache.scaleCoef * (e.pageX - dragInfo.initClick.x + dragInfo.initPos.left - $elem.position().left));
+                                    break;
+                                case 'vertical':
+                                    viewport.$obj.
+                                        scrollTop(cache.scaleCoef * (e.pageY - dragInfo.initClick.y + dragInfo.initPos.top - $elem.position().top));
+                                    break;
+                                default:
+                                    var pos = [$elem.position(), $contentRect.position()];
+                                    viewport.$obj.
+                                        scrollLeft(cache.scaleCoef * (e.pageX - dragInfo.initClick.x + dragInfo.initPos.left - pos[0].left - pos[1].left)).
+                                        scrollTop(cache.scaleCoef * (e.pageY - dragInfo.initClick.y + dragInfo.initPos.top - pos[0].top - pos[1].top));
+                            }
                         });
                         e.preventDefault();
                     }
                 });
 
                 // the mouseup event might happen outside the plugin, so to make sure the unbind always runs, it must done on body level
-                $("body").mouseup(function () {
+                $(document).mouseup(function () {
                     if (!opts.readonly) {
-                        $viewportRect.unbind('mousemove.rsOverview');
+                        $(document).unbind('mousemove.rsOverview');
                     }
                 });
 
                 // mouse click on the content: viewport jumps directly to that position
-                $contentRect.mousedown(function (e) {
-                    if (!opts.readonly) {
-                        var posData = {
-                            container: $elem.position(),
-                            content: $(this).position()
-                        },
-                        toPnt = {
-                            scrollLeft: cache.scaleCoef * (e.pageX - posData.container.left - posData.content.left - $viewportRect.width() / 2),
-                            scrollTop: cache.scaleCoef * (e.pageY - posData.container.top - posData.content.top - $viewportRect.height() / 2)
-                        };
-                        scrollTo(toPnt, function () {
-                            bookmarkUtil.checkEvents(e);
-                        });
-                        e.preventDefault();
-                    }
-                });
-
+                if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
+                    $contentRect.mousedown(function (e) {
+                        if (!opts.readonly) {
+                            var posData = $elem.position(),
+                                toValue = opts.direction == 'horizontal' ? (e.pageX - posData.left - $viewportRect.width() / 2) : (e.pageY - posData.top - $viewportRect.height() / 2);
+                            toValue *= cache.scaleCoef;
+                            scrollTo(opts.direction == 'horizontal' ? { scrollLeft: toValue } : { scrollTop: toValue }, function () {
+                                bookmarkUtil.checkEvents(e);
+                            });
+                            e.preventDefault();
+                        }
+                    });
+                } else {
+                    $contentRect.mousedown(function (e) {
+                        if (!opts.readonly) {
+                            var posData = {
+                                container: $elem.position(),
+                                content: $(this).position()
+                            },
+                            toPnt = {
+                                scrollLeft: cache.scaleCoef * (e.pageX - posData.container.left - posData.content.left - $viewportRect.width() / 2),
+                                scrollTop: cache.scaleCoef * (e.pageY - posData.container.top - posData.content.top - $viewportRect.height() / 2)
+                            };
+                            scrollTo(toPnt, function () {
+                                bookmarkUtil.checkEvents(e);
+                            });
+                            e.preventDefault();
+                        }
+                    });
+                }
+                
                 $elem.
                     bind('resize.rsOverview', onResize).
                     bind('render.rsOverview', onRender).
@@ -647,7 +859,7 @@
     }
 
     $.fn.rsOverview = function (options) {
-        var contentSizeChanged = function () {
+        var invalidate = function () {
             return this.trigger('resize.rsOverview');
         },
         bookmarkToggle = function () {
@@ -674,7 +886,7 @@
         if (typeof options == 'string') {
             var otherArgs = Array.prototype.slice.call(arguments, 1);
             switch (options) {
-                case 'contentSizeChanged': return contentSizeChanged.apply(this);
+                case 'invalidate': return invalidate.apply(this);
                 case 'toggleBk': return bookmarkToggle.apply(this);
                 case 'clearBk': return bookmarkClearAll.apply(this);
                 case 'prevBk': return bookmarkGotoPrev.apply(this);
@@ -701,8 +913,7 @@
         },
 
         // number pixels occupied by system scroll bar (only used for overflowed elements);
-        scrollbarPixels = opts.monitor === window || opts.monitor === $(window) ? 0 : getScrollbarSize();
-
+        scrollbarPixels = opts.monitor === window || $(opts.monitor).is($(window)) ? 0 : getScrollbarSize();
         return this.each(function () {
             new OverviewClass($(this), opts, scrollbarPixels);
         });
@@ -712,7 +923,8 @@
     $.fn.rsOverview.defaults = {
         // properties
         monitor: $(window),             // The element being monitored by the plug-in. Type: jQuery object.
-        center: true,                   // Whether to render the content and viewport reactangles centered in the placeholder area. Type: boolean.
+        direction: 'both',              // The monitoring direction. Type: String 'horizontal', 'vertical' or 'both'.
+        center: true,                   // Whether to render the content and viewport reactangles centered in the placeholder area. Ignored for direction 'horizontal' and 'vertical'. Type: boolean.
         autoHide: false,                // Whether to hide the plug-in when the content has the same size or is smaller than the viewport. Type: boolean.
         readonly: false,                // False: Reacts to mouse/keyboard events; True: Ignores mouse/keyboard events. Type: boolean.
         scrollSpeed: 'normal',          // Animation speed used when moving to a selected position or when moving to a bookmark. You can also use a sepecific duration in milliseconds. Use 0 for no animation. Type: string or integer.
@@ -721,6 +933,7 @@
         bookmarkHint: 'Go to bookmark', // Hint message that appears when the user mouses over the bookmark area. Use null to disable hints. Type: string.
         contentClass: 'content',        // CSS class(es) for the outer div representing the content area. Type: string.
         viewportClass: 'viewport',      // CSS class(es) for the inner div representing the viewport area. Type: string.
+        mousewheel: 0,                  // Amount to step applied to each mousewheel event. Use 0 to disable scrolling on mousewheel. Type: integer.
 
         // events
         onCreate: null,                 // Event fired after the plug-in has been initialized. Type: function(event)
