@@ -3,9 +3,9 @@
   <head>
     <title>Overview - jQuery plug-in</title>
     <link href="rsOverview.css" rel="stylesheet" type="text/css" />
-    <script type="text/javascript" src="jquery-1.8.0.min.js"></script>
-    <script type="text/javascript" src="jquery.rsOverview.min.js"></script>
-    <script type="text/javascript">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+    <script src="jquery.rsOverview.js"></script>
+    <script>
 
         // load the plug-in when page and DOM are fully loaded:
         $(function () {
@@ -34,6 +34,16 @@
                 }
             });
 
+            // scroll bars
+            $("#overviewDivHoriz").rsOverview({
+                monitor: $("#overflowed"),
+                direction: 'horizontal'
+            });
+            $("#overviewDivVert").rsOverview({
+                monitor: $("#overflowed"),
+                direction: 'vertical'
+            });
+
 
             // click events for the document buttons
             $("#btnDocBookM_toggle").click(function () {
@@ -60,10 +70,10 @@
 
             // click events for the overflow buttons
             $("#btnOvrBookM_toggle").click(function () {
-                $("#overviewDiv").rsOverview('toggleBk');
+                $("#overviewDiv, #overviewDivHoriz, #overviewDivVert").rsOverview('toggleBk');
             });
             $("#btnOvrBookM_clear").click(function () {
-                $("#overviewDiv").rsOverview('clearBk');
+                $("#overviewDiv, #overviewDivHoriz, #overviewDivVert").rsOverview('clearBk');
             });
             $("#btnOvrBookM_prev").click(function () {
                 $("#overviewDiv").rsOverview('prevBk');
@@ -73,11 +83,11 @@
             });
             $("#btnOvr_add").click(function () {
                 $("<p>content appended to the overviewed element manually</p>").appendTo($("#overflowed"));
-                $("#overviewDiv").rsOverview('invalidate'); // notify plug-in that needs to rescale, due to change in content size
+                $("#overviewDiv, #overviewDivHoriz, #overviewDivVert").rsOverview('invalidate'); // notify plug-in that needs to rescale, due to change in content size
             });
             $("#btnOvr_del").click(function () {
                 $("#overflowed p:last-child").remove();
-                $("#overviewDiv").rsOverview('invalidate'); // notify plug-in that needs to rescale, due to change in content size
+                $("#overviewDiv, #overviewDivHoriz, #overviewDivVert").rsOverview('invalidate'); // notify plug-in that needs to rescale, due to change in content size
             });
         });
     </script>
@@ -89,27 +99,29 @@
 
     <!-- plug-in markup for an overflowed div element (see the div#overflowed below) -->
     <div id="overviewDiv"></div>
-
+    
+    <!-- plug-in markup for the horizontal/vertical scroll bars -->
+    <div id="overviewDivHoriz"></div>
+    <div id="overviewDivVert"></div>
 
 
     <h1>Demonstration of the jQuery Overview plug-in</h1>
-
     <h2>What it is?</h2>
-    <p>This plug-in provides an overview of the whole page to the user, by reacting to changes in the horizontal, vertical or both scrolling positions, as well the viewport and content size.<br />
-    It renders two rectangles, one inside another. The darkest one represents the viewport area (your browser window).<br />
-    The lightest rectangle, represents the entire document area.<br />
+    <p>It is an alternative to the traditional vertical or horizontal scroll bars, that provides visual feedback every time there is a change in scroll position, content size or viewport size.<br />
+    It renders two rectangles, one inside another. The parent rectangle represents the content area and the child rectangle represents the viewsport area (the currently visible area, your browser window).<br />
     This allows anyone to quickly jump to any position within the document, bookmark several locations and visit them later on.</p>
-    <p>It provides methods to load/save all bookmarks between page transitions, so that your users can get their bookmarks back everytime they return to an old page.</p>
-    <p>Also works on overflowed elements and is an alternative to implement your own scroll bars, when 'direction' parameter is either horizontal or vertical.</p>
+    <p>Besides rendering an horizontal or vertical scroll bar, can be used to render both directions in a single control.</p>
+    <p>It provides methods to persist bookmarks between pages.</p>
+    <p>Also works on overflowed elements.</p>
     <p>It is very lightweight and highly customizable through CSS.</p>
 
     <h2>How it works?</h2>
-    This page contains two instances of the Overview plug-in:
+    This page contains four instances of the Overview plug-in:
     <ol>
-        <li>On the top right corner, you can a red/orange instance that monitors the content of this entire page.<br />
+        <li>On the top right corner, you have a red/orange instance that monitors the content of this entire page.<br />
             It should have a fixed position, to prevent it from moving out of sight when the user navigates through the page.
         </li>
-        <li>Below, another blue/cyan instance that monitors the overflowed element located right next to it.</li>
+        <li>Below, three instances: Horizontal scroll bar, Vertical scroll bar and Both directions. All three monitor the yellow overflowed element.</li>
     </ol>
 
     <fieldset id="bookmarkPaneDoc">
@@ -152,8 +164,8 @@
     <ul>
         <li>Basic stuff
             <ul>
-                <li>Drag and move the viewport (the small darker rectangle)</li>
-                <li>Click on the big rectangle for fast scroll</li>
+                <li>Drag and move the viewport (inner rectangle)</li>
+                <li>Click on the parent rectangle for fast scroll</li>
                 <li>Keep an eye on the red/orange instance, while you scroll and resize your browser window.</li>
                 <li>Click on the add/remove content buttons and watch how the plug-in reacts to changes in content size.</li>
             </ul>
@@ -162,13 +174,26 @@
             <ul>
                 <li>Click on the Toggle bookmark, to save/clear the current position.</li>
                 <li>Scroll to a different location and create another bookmark. Now click on the prev/next buttons</li>
-                <li>Click on the small bookmark squares</li>
+                <li>Click on the small bookmark circles</li>
             </ul>
         </li>
     </ul>
 
     
     <p style="margin-top: 100px">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+    <p>Nunc condimentum, enim non consequat hendrerit, ipsum mauris ultricies augue, ac pellentesque nunc metus eget orci.</p>
+    <p>Nunc et lorem quam. Fusce mi velit, interdum ac sodales eu, bibendum vitae ante. Morbi condimentum consectetur felis, sit amet cursus nisl auctor id.</p>
+    <p>Sed a libero sed diam rhoncus scelerisque in at est. Curabitur sollicitudin sapien non nunc gravida vulputate. Vivamus nec nibh at enim ultrices convallis sit amet vel ligula. Integer nec est leo, facilisis posuere neque. Etiam fringilla, dui a ultricies mollis, urna odio dictum mauris, suscipit pellentesque enim nisi porttitor sapien. Curabitur semper nunc sed enim laoreet aliquam.</p>
+    <p>Aliquam dignissim metus sed turpis molestie tristique. Nullam justo augue, porta interdum ultricies a, aliquam a massa. Fusce consectetur lacinia lectus vitae ullamcorper. Integer eget metus lorem, eget posuere erat. Duis eleifend tempus lectus ut euismod. Vivamus ultricies porttitor semper. Fusce pulvinar nisl in ante laoreet volutpat. Ut cursus arcu a quam sollicitudin blandit. Maecenas tincidunt vestibulum euismod.</p>
+    <p>Etiam urna odio, vehicula eu consectetur at, consectetur at nisi. Donec nisl odio, malesuada vitae cursus porta, congue eget est. Maecenas semper ipsum sed justo pretium ut convallis velit pellentesque. Mauris sed sollicitudin libero. Sed id nunc arcu. Nulla facilisi. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae;</p>
+    <p>Etiam egestas velit a lectus varius ornare. Sed ligula enim, sagittis non ultricies suscipit, porta sed odio. In condimentum sem quam, suscipit malesuada velit.</p>
+    <p>Nunc auctor, nisi at tempor eleifend, libero tellus interdum nunc, in vehicula lectus justo et neque. Etiam faucibus varius sapien eu pharetra. Ut ornare, elit non suscipit aliquet, erat diam pellentesque justo, non viverra turpis sapien id urna.</p>
+    <p>Donec pretium varius nulla adipiscing feugiat. Vestibulum eu diam ante. Cras ligula neque, lacinia a congue sit amet, posuere posuere ante. Nam interdum suscipit lorem id auctor. Suspendisse potenti. Aliquam erat volutpat. In sit amet nibh vel sem posuere luctus. Ut porttitor consectetur arcu id bibendum.</p>
+    <p>Phasellus a eros vitae dolor viverra pellentesque. Morbi aliquet, ipsum nec semper posuere, augue felis tincidunt magna, sed facilisis mi odio in dolor. Nulla facilisi. Etiam vehicula vehicula velit, egestas tempus felis consequat in.</p>
+    <p>Morbi dui enim, commodo nec faucibus vel, convallis tincidunt mauris. Mauris posuere velit massa, sit amet facilisis velit. Praesent congue sapien id justo interdum eu tincidunt eros tincidunt. Proin cursus massa ut libero luctus porta.</p>
+    <p>Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Quisque a sapien eu dolor volutpat laoreet. Duis euismod ornare urna, volutpat ornare eros tempor ut. Donec interdum laoreet arcu, id auctor velit ultrices non. Aenean tortor orci, consequat ac egestas quis, mollis at magna. Aenean suscipit luctus odio ac hendrerit.</p>
+    <p>Ut rhoncus, diam id dapibus viverra, massa nisl ullamcorper lorem, eget hendrerit mi lorem ut leo. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce volutpat, lectus vitae fringilla imperdiet, risus sapien hendrerit sem, sed rutrum justo orci non eros. Morbi ut odio sem.</p>
+    <p>Pellentesque libero mi, adipiscing id ultricies vel, ultricies vel dui. Mauris imperdiet metus id dolor elementum tristique. Nam pretium semper augue, sed auctor justo dictum quis.</p>
     <p>Nunc condimentum, enim non consequat hendrerit, ipsum mauris ultricies augue, ac pellentesque nunc metus eget orci.</p>
     <p>Nunc et lorem quam. Fusce mi velit, interdum ac sodales eu, bibendum vitae ante. Morbi condimentum consectetur felis, sit amet cursus nisl auctor id.</p>
     <p>Sed a libero sed diam rhoncus scelerisque in at est. Curabitur sollicitudin sapien non nunc gravida vulputate. Vivamus nec nibh at enim ultrices convallis sit amet vel ligula. Integer nec est leo, facilisis posuere neque. Etiam fringilla, dui a ultricies mollis, urna odio dictum mauris, suscipit pellentesque enim nisi porttitor sapien. Curabitur semper nunc sed enim laoreet aliquam.</p>

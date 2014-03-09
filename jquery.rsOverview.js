@@ -57,7 +57,7 @@
 *     width: 200px;
 *     height: 300px;
 * }
-* To monitor overflowed elements, you might set your placeholder to position absolute, and for the whole document, use position fixed.
+* To monitor the whole document, use position fixed.
 *
 *
 * Methods              Remarks
@@ -65,8 +65,9 @@
 * invalidate           Call this method when content has been changed dynamically. It notifies the plug-in to rescale to the correct size
 * toggleBk             Create/remove a bookmark in the current scroll position. Typically called from a "Toggle bookmark" control.
 * clearBk              Removes all bookmarks created so far. Typically called from a "Clear all" control.
-* prevBk               Scrolls the content backwards to previous bookmark
-* nextBk               Scrolls the content forwards to next bookmark
+* prevBk               Scrolls the content backwards to previous bookmark.
+* nextBk               Scrolls the content forwards to next bookmark.
+* destroy              Unbinds all events and completely removes the plugin from the page.
 *
 *
 * Parameter            Remarks
@@ -78,7 +79,7 @@
       bookmarkClass: null,
       monitor: $("#memo")    // use this plug-in on an overflow element and not on the whole page
   });
-* Alternatively, you can change the default values only once, and then use thoughout all the plug-in instances.
+* Alternatively, you can change the default values only once, and then use throughout all the plug-in instances.
 * To define defaults values use the $.fn.rsOverview.defaults, e.g.
 * $.fn.rsOverview.defaults.scrollSpeed = 300;
 * $.fn.rsOverview.defaults.autoHide = true;
@@ -112,7 +113,7 @@
 * bookmarks     array           Returns all the bookmarks. The type of each array element, depends on the direction parameter:
 *                               If direction is 'horizontal', then each element is an integer that represents the horizontal scrolling position. Example: [5, 12];
 *                               If direction is 'vertical', then each element is an integer that represents the vertical scrolling position. Example: [11, 80, 30].
-*                               If direction is other (or 'both'), then each element is two integers array, that represents the horizontal and vertical scrolling position. Example: [[6,44], [40, 120], [0, 130]].
+*                               If direction is other (or 'both'), then each element is a two integers array, that represents the horizontal and vertical scrolling position. Example: [[6,44], [40, 120], [0, 130]].
 * Example:
     var isReadOnly = $("#overview").rsOverview('option', 'readonly');
 *
@@ -148,6 +149,7 @@
             $viewportRect = null,
             monitorWindow = opts.monitor === window || $(opts.monitor).is($(window)),
             animating = false,
+            dragInfo,
             cache = {
                 scaleCoef: 0,
                 scrPixels: {
@@ -601,7 +603,7 @@
             },
             
             doRenderBoth = function (pos, needResize) {
-                if (needResize) {                
+                if (needResize) {
                     var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef,
                         calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.scaleCoef;
                     $viewportRect.width(Math.round(calcWidth)).height(Math.round(calcHeight));
@@ -726,7 +728,87 @@
                     opts.onCreate(event);
                 }
             },
+            doScroll = function () {
+                $elem.triggerHandler('render.rsOverview', [false]);
+            },
+            doResize = function () {
+                $elem.triggerHandler('resize.rsOverview');
+            },
+            doViewportMousedown = function (e) {
+                if (!opts.readonly) {
+                    if (animating) {
+                        (monitorWindow ? $("html,body") : viewport.$obj).stop(true);
+                        animating = false;
+                    }
+                    var contPos = $contentRect.position(),
+                        viewPos = $viewportRect.position();
+                    dragInfo = {
+                        initPos: { 
+                            x: viewPos.left - contPos.left,
+                            y: viewPos.top - contPos.top
+                        },
+                        initClick: {
+                            x: e.clientX,
+                            y: e.clientY
+                        }
+                    };
+
+                    // prevents text selection during drag
+                    this.ondragstart = this.onselectstart = function () {
+                        return false;
+                    };
+
+                    $(document).bind('mousemove.rsOverview', doDocumentMousemove);
+                    e.preventDefault();
+                }
+            },
+            doDocumentMousemove = function (e) {
+                switch (opts.direction) {
+                    case 'horizontal':
+                        viewport.$obj.
+                            scrollLeft(cache.scaleCoef * (e.clientX - dragInfo.initClick.x + dragInfo.initPos.x));
+                        break;
+                    case 'vertical':
+                        viewport.$obj.
+                            scrollTop(cache.scaleCoef * (e.clientY - dragInfo.initClick.y + dragInfo.initPos.y));
+                        break;
+                    default:
+                        viewport.$obj.
+                            scrollLeft(cache.scaleCoef * (e.clientX - dragInfo.initClick.x + dragInfo.initPos.x)).
+                            scrollTop(cache.scaleCoef * (e.clientY - dragInfo.initClick.y + dragInfo.initPos.y));
+                }
+                e.preventDefault();
+            },
+            doDocumentMouseup = function () {
+                if (!opts.readonly) {
+                    $(document).unbind('mousemove.rsOverview', doDocumentMousemove);
+                }
+            },
+            doContentMousedownHorizVert = function (e) {
+                if (!opts.readonly) {
+                    scrollTo(opts.direction == 'horizontal' ? 
+                        { scrollLeft: (e.offsetX - $viewportRect.width() / 2)*cache.scaleCoef } :
+                        { scrollTop: (e.offsetY - $viewportRect.height() / 2)*cache.scaleCoef }, function () {
+                        bookmarkUtil.checkEvents(e);
+                    });
+                    e.preventDefault();
+                }
+            },
+            doContentMousedownBoth = function (e) {
+                if (!opts.readonly) {
+                    scrollTo({
+                        scrollLeft: cache.scaleCoef * (e.offsetX - $viewportRect.width() / 2),
+                        scrollTop: cache.scaleCoef * (e.offsetY - $viewportRect.height() / 2)
+                    }, function () {
+                        bookmarkUtil.checkEvents(e);
+                    });
+                    e.preventDefault();
+                }
+            },
             init = function () {
+                if ($elem.css('position') === 'static') {
+                    $elem.css('position', 'relative');
+                }
                 $contentRect = $("<span>").addClass(opts.contentClass).css('position', 'absolute');
                 $viewportRect = $("<span>").addClass(opts.viewportClass).css('position', 'absolute');
                 $elem.append($contentRect).append($viewportRect);
@@ -743,101 +825,40 @@
 
                 // elements being monitorized for scroll and resize events
                 viewport.$obj = $(opts.monitor);
+                content.$obj = monitorWindow ? $(document) : viewport.$obj;
                 if (monitorWindow) {
-                    content.$obj = $(document);
-                } else {
-                    content.$obj = viewport.$obj;
+                    switch (opts.direction) {
+                        case 'horizontal':
+                            $scrollAnim = $({ 'scrollLeft': 0 });
+                            break;
+                        case 'vertical':
+                            $scrollAnim = $({ 'scrollTop': 0 });
+                            break;
+                        default:
+                            $scrollAnim = $({ 'scrollLeft': 0, 'scrollTop': 0 });
+                    }
                 }
-
                 // when the viewport is scrolled or when is resized, the plugin is updated
-                viewport.$obj.scroll(function () {
-                    $elem.triggerHandler('render.rsOverview', [false]);
-                }).resize(function () {
-                    $elem.triggerHandler('resize.rsOverview');
-                });
+                viewport.$obj.
+                    bind('scroll.rsOverview', doScroll).
+                    bind('resize.rsOverview', doResize);
+
                 if (opts.mousewheel !== 0) {
                     (monitorWindow? $(window) : viewport.$obj).bind('DOMMouseScroll.rsOverview mousewheel.rsOverview', onMouseWheel);
                 }
 
-                $viewportRect.mousedown(function (e) {
-                    if (!opts.readonly) {
-                        if (animating) {
-                            (monitorWindow ? $("html,body") : viewport.$obj).stop(true);
-                            animating = false;
-                        }
-                        var dragInfo = {
-                            initPos: $viewportRect.offset(),
-                            initClick: {
-                                x: e.pageX,
-                                y: e.pageY
-                            }
-                        };
+                $viewportRect.bind('mousedown.rsOverview', doViewportMousedown);
 
-                        // prevents text selection during drag
-                        this.onselectstart = function () {
-                            return false;
-                        };
-
-                        $(document).bind('mousemove.rsOverview', function (e) {
-                            switch (opts.direction) {
-                                case 'horizontal':
-                                    viewport.$obj.
-                                        scrollLeft(cache.scaleCoef * (e.pageX - dragInfo.initClick.x + dragInfo.initPos.left - $elem.position().left));
-                                    break;
-                                case 'vertical':
-                                    viewport.$obj.
-                                        scrollTop(cache.scaleCoef * (e.pageY - dragInfo.initClick.y + dragInfo.initPos.top - $elem.position().top));
-                                    break;
-                                default:
-                                    var pos = [$elem.position(), $contentRect.position()];
-                                    viewport.$obj.
-                                        scrollLeft(cache.scaleCoef * (e.pageX - dragInfo.initClick.x + dragInfo.initPos.left - pos[0].left - pos[1].left)).
-                                        scrollTop(cache.scaleCoef * (e.pageY - dragInfo.initClick.y + dragInfo.initPos.top - pos[0].top - pos[1].top));
-                            }
-                        });
-                        e.preventDefault();
-                    }
-                });
-
-                // the mouseup event might happen outside the plugin, so to make sure the unbind always runs, it must done on body level
-                $(document).mouseup(function () {
-                    if (!opts.readonly) {
-                        $(document).unbind('mousemove.rsOverview');
-                    }
-                });
+                // the mouseup event might happen outside the plugin, so to make sure the unbind always runs, it must done on document level
+                $(document).bind('mouseup.rsOverview', doDocumentMouseup);
 
                 // mouse click on the content: viewport jumps directly to that position
                 if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
-                    $contentRect.mousedown(function (e) {
-                        if (!opts.readonly) {
-                            var posData = $elem.position(),
-                                toValue = opts.direction == 'horizontal' ? (e.pageX - posData.left - $viewportRect.width() / 2) : (e.pageY - posData.top - $viewportRect.height() / 2);
-                            toValue *= cache.scaleCoef;
-                            scrollTo(opts.direction == 'horizontal' ? { scrollLeft: toValue } : { scrollTop: toValue }, function () {
-                                bookmarkUtil.checkEvents(e);
-                            });
-                            e.preventDefault();
-                        }
-                    });
+                    $contentRect.bind('mousedown.rsOverview', doContentMousedownHorizVert);
                 } else {
-                    $contentRect.mousedown(function (e) {
-                        if (!opts.readonly) {
-                            var posData = {
-                                container: $elem.position(),
-                                content: $(this).position()
-                            },
-                            toPnt = {
-                                scrollLeft: cache.scaleCoef * (e.pageX - posData.container.left - posData.content.left - $viewportRect.width() / 2),
-                                scrollTop: cache.scaleCoef * (e.pageY - posData.container.top - posData.content.top - $viewportRect.height() / 2)
-                            };
-                            scrollTo(toPnt, function () {
-                                bookmarkUtil.checkEvents(e);
-                            });
-                            e.preventDefault();
-                        }
-                    });
+                    $contentRect.bind('mousedown.rsOverview', doContentMousedownBoth);
                 }
-                
+
                 $elem.
                     bind('resize.rsOverview', onResize).
                     bind('render.rsOverview', onRender).
@@ -847,12 +868,55 @@
                     bind('nextBk.rsOverview', onNextBk).
                     bind('getter.rsOverview', onGetter).
                     bind('setter.rsOverview', onSetter).
-                    bind('create.rsOverview', onCreate);
+                    bind('create.rsOverview', onCreate).
+                    bind('destroy.rsOverview', onDestroy);
 
                 // graphical initialization when plugin is called (after page and DOM are loaded)
                 $elem.triggerHandler('resize.rsOverview');
 
                 $elem.triggerHandler('create.rsOverview');
+            },
+            onDestroy = function () {
+                $elem.triggerHandler('clearBk.rsOverview');
+                
+                viewport.$obj.
+                    unbind('scroll.rsOverview', doScroll).
+                    unbind('resize.rsOverview', doResize);
+                
+                if (opts.mousewheel !== 0) {
+                    (monitorWindow? $(window) : viewport.$obj).unbind('DOMMouseScroll.rsOverview mousewheel.rsOverview', onMouseWheel);
+                }
+                
+                $viewportRect.
+                    unbind('mousedown.rsOverview', doViewportMousedown);
+                $(document).
+                    unbind('mouseup.rsOverview', doDocumentMouseup).
+                    unbind('mousemove.rsOverview', doDocumentMousemove);
+
+                if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
+                    $contentRect.unbind('mousedown.rsOverview', doContentMousedownHorizVert);
+                } else {
+                    $contentRect.unbind('mousedown.rsOverview', doContentMousedownBoth);
+                }
+
+                $elem.
+                    unbind('resize.rsOverview', onResize).
+                    unbind('render.rsOverview', onRender).
+                    unbind('toggleBk.rsOverview', onToggleBk).
+                    unbind('clearBk.rsOverview', onClearBk).
+                    unbind('prevBk.rsOverview', onPrevBk).
+                    unbind('nextBk.rsOverview', onNextBk).
+                    unbind('getter.rsOverview', onGetter).
+                    unbind('setter.rsOverview', onSetter).
+                    unbind('create.rsOverview', onCreate).
+                    unbind('destroy.rsOverview', onDestroy);
+
+                $contentRect.remove();
+                $viewportRect.remove();
+                $elem.css('position', '');
+                if ($elem.attr('style') == '') {
+                    $elem.removeAttr('style');
+                }
             };
 
         init();
@@ -874,6 +938,9 @@
         bookmarkGotoNext = function () {
             return this.trigger('nextBk.rsOverview');
         },
+        destroy = function () {
+            return this.trigger('destroy.rsOverview');
+        },
         option = function (options) {
             if (typeof arguments[0] == 'string') {
                 var op = arguments.length == 1 ? 'getter' : (arguments.length == 2 ? 'setter' : null);
@@ -891,6 +958,7 @@
                 case 'clearBk': return bookmarkClearAll.apply(this);
                 case 'prevBk': return bookmarkGotoPrev.apply(this);
                 case 'nextBk': return bookmarkGotoNext.apply(this);
+                case 'destroy': return destroy.call(this);
                 case 'option': return option.apply(this, otherArgs);
                 default: return this;
             }
@@ -898,22 +966,23 @@
 
         var opts = $.extend({}, $.fn.rsOverview.defaults, options),
 
-        // returns the size of a vertical/horizontal scroll bar in pixels
-        getScrollbarSize = function () {
-            // create a div with overflow: scroll (which forces scrollbars to appear)
-            var $calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
-            // place it in DOM
-            $("body").append($calcDiv);
-            try {
-                var clientWidth = $calcDiv[0].clientWidth;
-                return 100 - (clientWidth == 100 || clientWidth == 0 ? 83 : clientWidth);
-            } finally {
-                $calcDiv.remove();
-            }
-        },
+            // returns the size of a vertical/horizontal scroll bar in pixels
+            getScrollbarSize = function () {
+                // create a div with overflow: scroll (which forces scrollbars to appear)
+                var $calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
+                // place it in DOM
+                $("body").append($calcDiv);
+                try {
+                    var clientWidth = $calcDiv[0].clientWidth;
+                    return 100 - (clientWidth == 100 || clientWidth == 0 ? 83 : clientWidth);
+                } finally {
+                    $calcDiv.remove();
+                }
+            },
 
-        // number pixels occupied by system scroll bar (only used for overflowed elements);
-        scrollbarPixels = opts.monitor === window || $(opts.monitor).is($(window)) ? 0 : getScrollbarSize();
+        	// number pixels occupied by system scroll bar (only used for overflowed elements);
+        	scrollbarPixels = opts.monitor === window || $(opts.monitor).is($(window)) ? 0 : getScrollbarSize();
+
         return this.each(function () {
             new OverviewClass($(this), opts, scrollbarPixels);
         });
@@ -924,7 +993,7 @@
         // properties
         monitor: $(window),             // The element being monitored by the plug-in. Type: jQuery object.
         direction: 'both',              // The monitoring direction. Type: String 'horizontal', 'vertical' or 'both'.
-        center: true,                   // Whether to render the content and viewport reactangles centered in the placeholder area. Ignored for direction 'horizontal' and 'vertical'. Type: boolean.
+        center: true,                   // Whether to render the content and viewport rectangles centered in the placeholder area. Ignored for direction 'horizontal' and 'vertical'. Type: boolean.
         autoHide: false,                // Whether to hide the plug-in when the content has the same size or is smaller than the viewport. Type: boolean.
         readonly: false,                // False: Reacts to mouse/keyboard events; True: Ignores mouse/keyboard events. Type: boolean.
         scrollSpeed: 'normal',          // Animation speed used when moving to a selected position or when moving to a bookmark. You can also use a sepecific duration in milliseconds. Use 0 for no animation. Type: string or integer.
