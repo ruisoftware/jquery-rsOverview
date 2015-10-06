@@ -144,6 +144,7 @@
 *  - Except for getter/setter calls, it respects jQuery chaining, which allows calling multiple methods on the same statement.
 */
 (function ($) {
+    'use strict';
     var OverviewClass = function ($elem, opts, scrollbarPixels) {
         var $contentRect = null,
             $viewportRect = null,
@@ -157,7 +158,6 @@
                     y: scrollbarPixels
                 }
             },
-
             content = {         // the content element being monitoried. By default, content is the whole document
                 $obj: null,
                 sizeX: 0,
@@ -167,12 +167,11 @@
                     this.sizeY = this.$obj.height();
                 },
                 resizedOverflow: function () {
-                    var obj = this.$obj[0].children.length == 1 ? (this.$obj[0].children[0].children.length > 0 ? this.$obj[0].children[0] : this.$obj[0]) : this.$obj[0];
+                    var obj = this.$obj[0].children.length === 1 ? (this.$obj[0].children[0].children.length > 0 ? this.$obj[0].children[0] : this.$obj[0]) : this.$obj[0];
                     this.sizeX = obj.scrollWidth;
                     this.sizeY = obj.scrollHeight;
                 }
             },
-
             viewport = {        // the viewport element being monitoried. By default, viewport is the browser window
                 $obj: null,
                 sizeX: 0,
@@ -182,14 +181,13 @@
                     this.sizeY = this.$obj.height();
                 }
             },
-
             bookmarkUtil = {
                 states: {
                     toggle: null,
                     toggleIdx: null,
                     triggerToggle: function (event, newToggleIdx) {
                         var newToggle = newToggleIdx > -1;
-                        if (newToggle !== this.toggle || newToggle && newToggleIdx != this.toggleIdx) {
+                        if (newToggle !== this.toggle || newToggle && newToggleIdx !== this.toggleIdx) {
                             if (opts.bookmarkActiveClass) {
                                 bookmarkUtil.$allBks.removeClass(opts.bookmarkActiveClass);
                                 if (newToggle) {
@@ -260,7 +258,7 @@
                         default:
                             for (var i = 0; i < this.marks.length; ++i) {
                                 var mark = this.marks[i];
-                                if (mark[0] == key[0] && mark[1] == key[1]) {
+                                if (mark[0] === key[0] && mark[1] === key[1]) {
                                     return i;
                                 }
                             }
@@ -268,12 +266,12 @@
                     return -1;
                 },
                 doToggle: function (event, x, y) {
-                    var key = opts.direction == 'horizontal' ? x : (opts.direction == 'vertical' ? y : [x, y]),
+                    var key = opts.direction === 'horizontal' ? x : (opts.direction === 'vertical' ? y : [x, y]),
                         idx = this.arrayIndexOf(key);
                     if (idx === -1) {
                         // create a new bookmark
                         var pos = $viewportRect.position(),
-                            $bookm = $("<span>").addClass(opts.bookmarkClass).css('position', 'absolute').appendTo($elem); 
+                            $bookm = $('<span>').addClass(opts.bookmarkClass).css('position', 'absolute').appendTo($elem); 
 
                         if (opts.bookmarkHint) {
                             $bookm.attr('title', opts.bookmarkHint);
@@ -384,16 +382,16 @@
                     }
                 },
                 isInteger: function (num) {
-                    return typeof num === "number" && num % 1 === 0;
+                    return typeof num === 'number' && num % 1 === 0;
                 },
                 parseLoad: function (bookmarks) {
                     var list = [];
                     if (bookmarks) {
                         if (bookmarks instanceof Array) {
-                            var qt = bookmarks.length;
-                            if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
-                                for (var i = 0; i < qt; ++i) {
-                                    var elem = bookmarks[i];
+                            var qt = bookmarks.length, i, elem;
+                            if (opts.direction === 'horizontal' || opts.direction === 'vertical') {
+                                for (i = 0; i < qt; ++i) {
+                                    elem = bookmarks[i];
                                     if (this.isInteger(elem)) {
                                         list.push(elem);
                                     } else {
@@ -401,8 +399,8 @@
                                     }
                                 }
                             } else {
-                                for (var i = 0; i < qt; ++i) {
-                                    var elem = bookmarks[i];
+                                for (i = 0; i < qt; ++i) {
+                                    elem = bookmarks[i];
                                     if (elem instanceof Array && elem.length === 2 && this.isInteger(elem[0]) && this.isInteger(elem[1])) {
                                         list.push(elem);
                                         continue;
@@ -425,14 +423,14 @@
                 loadMarks: function (event, bookmarks) {
                     try {
                         var loaded = this.parseLoad(bookmarks),
-                            qt = loaded.length;
+                            qt = loaded.length, i;
                         this.doClearAll(null);
-                        if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
-                            for (var i = 0; i < qt; ++i) {
+                        if (opts.direction === 'horizontal' || opts.direction === 'vertical') {
+                            for (i = 0; i < qt; ++i) {
                                 this.doToggle(null, loaded[i], loaded[i]);
                             }
                         } else {
-                            for (var i = 0; i < qt; ++i) {
+                            for (i = 0; i < qt; ++i) {
                                 this.doToggle(null, loaded[i][0], loaded[i][1]);
                             }
                         }
@@ -441,16 +439,15 @@
                     } catch (er) {
                         var msg = 'rsOverview.loadMarks(): ' + er;
                         if (window.console) {
-                            console.error(msg);
+                            window.console.error(msg);
                         } else {
-                            alert(msg);
+                            window.alert(msg);
                         }
                     }
                 }
             },
-
             scrollTo = function (toPnt, onComplete) {
-                var $anim = monitorWindow ? $("html,body") : viewport.$obj;
+                var $anim = monitorWindow ? $('html,body') : viewport.$obj;
                 if (animating) {
                     $anim.stop(true);
                 }
@@ -460,7 +457,7 @@
                     var $this = $(this),
                         x = $this.scrollLeft(),
                         y = $this.scrollTop();
-                    if (x != 0 || y != 0) {
+                    if (x !== 0 || y !== 0) {
                         currPos[0] = x;
                         currPos[1] = y;
                         return false;
@@ -469,13 +466,13 @@
 
                 switch (opts.direction) {
                     case 'horizontal':
-                        willChange = currPos[0] != toPnt.scrollLeft;
+                        willChange = currPos[0] !== toPnt.scrollLeft;
                         break;
                     case 'vertical':
-                        willChange = currPos[1] != toPnt.scrollTop;
+                        willChange = currPos[1] !== toPnt.scrollTop;
                         break;
                     default:
-                        willChange = currPos[0] != toPnt.scrollLeft || currPos[1] != toPnt.scrollTop;
+                        willChange = currPos[0] !== toPnt.scrollLeft || currPos[1] !== toPnt.scrollTop;
                 }
                 if (willChange) {
                     if (opts.bookmarkClass && opts.bookmarkActiveClass) {
@@ -485,7 +482,7 @@
                     $anim.animate(toPnt, {
                         duration: opts.scrollSpeed, 
                         queue: false,
-                        complete: function (event) {
+                        complete: function () {
                             animating = false;
                             if (onComplete !== undefined) {
                                 onComplete();
@@ -494,16 +491,13 @@
                     });
                 }
             },
-
             getXScrollBarPixels = function () {
                 return content.sizeX <= viewport.sizeX ? 0 : cache.scrPixels.x;
             },
-
             getYScrollBarPixels = function () {
                 return content.sizeY <= viewport.sizeY ? 0 : cache.scrPixels.y;
             },
-
-            onResize = function (event) {
+            onResize = function () {
                 var needsToHide = function () {
                     switch(opts.direction) {
                         case 'horizontal': return content.sizeX <= viewport.sizeX;
@@ -516,8 +510,8 @@
                 } else {
                     content.resizedOverflow();
                     var ovr = [viewport.$obj.css('overflow-x'), viewport.$obj.css('overflow-y')];
-                    cache.scrPixels.x = ovr[0] == 'hidden' ? 0 : scrollbarPixels;
-                    cache.scrPixels.y = ovr[1] == 'hidden' ? 0 : scrollbarPixels;
+                    cache.scrPixels.x = ovr[0] === 'hidden' ? 0 : scrollbarPixels;
+                    cache.scrPixels.y = ovr[1] === 'hidden' ? 0 : scrollbarPixels;
                 }
                 viewport.resized();
 
@@ -528,33 +522,35 @@
                     }
                     $elem.show();
                 } else {
-                    if ($elem.css('display') == 'none') {
+                    if ($elem.css('display') === 'none') {
                         $elem.show();
                     }
                 }
                 
                 var elementSize = {
-                    x: $elem.width(),
-                    y: $elem.height()
-                }, coefX = coefY = 0;
+                        x: $elem.width(),
+                        y: $elem.height()
+                    },
+                    coefX = 0,
+                    coefY = 0;
                 
-                if (opts.direction != 'vertical') {
+                if (opts.direction !== 'vertical') {
                     coefX = content.sizeX / elementSize.x;
                 }
-                if (opts.direction != 'horizontal') {
+                if (opts.direction !== 'horizontal') {
                     coefY = content.sizeY / elementSize.y;
                 }
                 cache.scaleCoef = Math.max(coefX, coefY);
                 
-                if (opts.direction != 'vertical') {
+                if (opts.direction !== 'vertical') {
                     coefX = (viewport.sizeX - getYScrollBarPixels()) / elementSize.x;
                 }
-                if (opts.direction != 'horizontal') {
+                if (opts.direction !== 'horizontal') {
                     coefY = (viewport.sizeY - getXScrollBarPixels()) / elementSize.y;
                 }
                 cache.scaleCoef = Math.max(Math.max(coefX, coefY), cache.scaleCoef);
 
-                if (opts.direction != 'horizontal' && opts.direction != 'vertical') {
+                if (opts.direction !== 'horizontal' && opts.direction !== 'vertical') {
                     // compute inner DIV size that corresponds to the size of the content being monitored
                     var calcWidth = content.sizeX / cache.scaleCoef,
                         calcHeight = content.sizeY / cache.scaleCoef;
@@ -565,7 +561,6 @@
                 }
                 $elem.triggerHandler('render.rsOverview', [true]);
             },
-
             doRenderHorizontal = function (needResize) {
                 if (needResize) {                
                     var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef;
@@ -583,7 +578,6 @@
                 }
                 $viewportRect.css('left', Math.round(viewport.$obj.scrollLeft() / cache.scaleCoef) + 'px');
             },
-            
             doRenderVertical = function (needResize) {
                 if (needResize) {                
                     var calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.scaleCoef;
@@ -601,7 +595,6 @@
                 }
                 $viewportRect.css('top', Math.round(viewport.$obj.scrollTop() / cache.scaleCoef) + 'px');
             },
-            
             doRenderBoth = function (pos, needResize) {
                 if (needResize) {
                     var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef,
@@ -662,9 +655,9 @@
                 if (evt.wheelDeltaX !== undefined) { 
                     delta.x = - evt.wheelDeltaX/120;
                 }
-
+                /*jshint -W030 */
                 event.preventDefault ? event.preventDefault() : event.returnValue = false; // prevents scrolling
-                if (opts.direction == 'horizontal') {
+                if (opts.direction === 'horizontal') {
                     viewport.$obj.scrollLeft(viewport.$obj.scrollLeft() - delta.y*opts.mousewheel);
                 } else {
                     viewport.$obj.scrollTop(viewport.$obj.scrollTop() - delta.y*opts.mousewheel);
@@ -737,7 +730,7 @@
             doViewportMousedown = function (e) {
                 if (!opts.readonly) {
                     if (animating) {
-                        (monitorWindow ? $("html,body") : viewport.$obj).stop(true);
+                        (monitorWindow ? $('html,body') : viewport.$obj).stop(true);
                         animating = false;
                     }
                     var contPos = $contentRect.position(),
@@ -786,7 +779,7 @@
             },
             doContentMousedownHorizVert = function (e) {
                 if (!opts.readonly) {
-                    scrollTo(opts.direction == 'horizontal' ? 
+                    scrollTo(opts.direction === 'horizontal' ? 
                         { scrollLeft: (e.offsetX - $viewportRect.width() / 2)*cache.scaleCoef } :
                         { scrollTop: (e.offsetY - $viewportRect.height() / 2)*cache.scaleCoef }, function () {
                         bookmarkUtil.checkEvents(e);
@@ -809,10 +802,10 @@
                 if ($elem.css('position') === 'static') {
                     $elem.css('position', 'relative');
                 }
-                $contentRect = $("<span>").addClass(opts.contentClass).css('position', 'absolute');
-                $viewportRect = $("<span>").addClass(opts.viewportClass).css('position', 'absolute');
+                $contentRect = $('<span>').addClass(opts.contentClass).css('position', 'absolute');
+                $viewportRect = $('<span>').addClass(opts.viewportClass).css('position', 'absolute');
                 $elem.append($contentRect).append($viewportRect);
-                if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
+                if (opts.direction === 'horizontal' || opts.direction === 'vertical') {
                     $contentRect.css({ 'left': 0, 'top': 0, 'bottom': 0, 'right': 0 });
                 }
                 switch (opts.direction) {
@@ -826,18 +819,7 @@
                 // elements being monitorized for scroll and resize events
                 viewport.$obj = $(opts.monitor);
                 content.$obj = monitorWindow ? $(document) : viewport.$obj;
-                if (monitorWindow) {
-                    switch (opts.direction) {
-                        case 'horizontal':
-                            $scrollAnim = $({ 'scrollLeft': 0 });
-                            break;
-                        case 'vertical':
-                            $scrollAnim = $({ 'scrollTop': 0 });
-                            break;
-                        default:
-                            $scrollAnim = $({ 'scrollLeft': 0, 'scrollTop': 0 });
-                    }
-                }
+
                 // when the viewport is scrolled or when is resized, the plugin is updated
                 viewport.$obj.
                     bind('scroll.rsOverview', doScroll).
@@ -853,7 +835,7 @@
                 $(document).bind('mouseup.rsOverview', doDocumentMouseup);
 
                 // mouse click on the content: viewport jumps directly to that position
-                if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
+                if (opts.direction === 'horizontal' || opts.direction === 'vertical') {
                     $contentRect.bind('mousedown.rsOverview', doContentMousedownHorizVert);
                 } else {
                     $contentRect.bind('mousedown.rsOverview', doContentMousedownBoth);
@@ -893,7 +875,7 @@
                     unbind('mouseup.rsOverview', doDocumentMouseup).
                     unbind('mousemove.rsOverview', doDocumentMousemove);
 
-                if (opts.direction == 'horizontal' || opts.direction == 'vertical') {
+                if (opts.direction === 'horizontal' || opts.direction === 'vertical') {
                     $contentRect.unbind('mousedown.rsOverview', doContentMousedownHorizVert);
                 } else {
                     $contentRect.unbind('mousedown.rsOverview', doContentMousedownBoth);
@@ -914,13 +896,13 @@
                 $contentRect.remove();
                 $viewportRect.remove();
                 $elem.css('position', '');
-                if ($elem.attr('style') == '') {
+                if ($elem.attr('style') === '') {
                     $elem.removeAttr('style');
                 }
             };
 
         init();
-    }
+    };
 
     $.fn.rsOverview = function (options) {
         var invalidate = function () {
@@ -941,16 +923,16 @@
         destroy = function () {
             return this.trigger('destroy.rsOverview');
         },
-        option = function (options) {
-            if (typeof arguments[0] == 'string') {
-                var op = arguments.length == 1 ? 'getter' : (arguments.length == 2 ? 'setter' : null);
-                if (op != null) {
+        option = function () {
+            if (typeof arguments[0] === 'string') {
+                var op = arguments.length === 1 ? 'getter' : (arguments.length === 2 ? 'setter' : null);
+                if (op !== null) {
                     return this.eq(0).triggerHandler(op + '.rsOverview', arguments);
                 }
             }
         };
 
-        if (typeof options == 'string') {
+        if (typeof options === 'string') {
             var otherArgs = Array.prototype.slice.call(arguments, 1);
             switch (options) {
                 case 'invalidate': return invalidate.apply(this);
@@ -969,19 +951,18 @@
             // returns the size of a vertical/horizontal scroll bar in pixels
             getScrollbarSize = function () {
                 // create a div with overflow: scroll (which forces scrollbars to appear)
-                var $calcDiv = $("<div style='visibily: hidden; overflow: scroll; width: 100px;'></div>");
-                // place it in DOM
-                $("body").append($calcDiv);
+                var $calcDiv = $('<div style=\'visibily: hidden; overflow: scroll; width: 100px;\'></div>');
+                $('body').append($calcDiv);
                 try {
                     var clientWidth = $calcDiv[0].clientWidth;
-                    return 100 - (clientWidth == 100 || clientWidth == 0 ? 83 : clientWidth);
+                    return 100 - (clientWidth === 100 || clientWidth === 0 ? 83 : clientWidth);
                 } finally {
                     $calcDiv.remove();
                 }
             },
 
-        	// number pixels occupied by system scroll bar (only used for overflowed elements);
-        	scrollbarPixels = opts.monitor === window || $(opts.monitor).is($(window)) ? 0 : getScrollbarSize();
+            // number pixels occupied by system scroll bar (only used for overflowed elements);
+            scrollbarPixels = opts.monitor === window || $(opts.monitor).is($(window)) ? 0 : getScrollbarSize();
 
         return this.each(function () {
             new OverviewClass($(this), opts, scrollbarPixels);
@@ -1009,5 +990,4 @@
         onChangeCtrlState: null,        // Event fired when the UI controls for prev/next/clearAll needs to be disabled/enabled. Type: function(event, kind, enabled)
         onChangeToggle: null            // Event fired when the UI control for the toggle UI control needs to be pushed down or up. Type: function(event, isMarked)
     };
-
 })(jQuery);
