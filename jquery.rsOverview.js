@@ -925,9 +925,14 @@
         },
         option = function () {
             if (typeof arguments[0] === 'string') {
-                var op = arguments.length === 1 ? 'getter' : (arguments.length === 2 ? 'setter' : null);
-                if (op !== null) {
-                    return this.eq(0).triggerHandler(op + '.rsOverview', arguments);
+                switch (arguments.length) {
+                    case 1:
+                        return this.eq(0).triggerHandler('getter.rsOverview', arguments);
+                    case 2:
+                        for (var last = this.length - 1; last > -1; --last) {
+                            this.eq(last).triggerHandler('setter.rsOverview', arguments);
+                        }
+                        return this;
                 }
             }
         };
