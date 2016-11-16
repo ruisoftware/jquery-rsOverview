@@ -11,7 +11,7 @@
 *
 * Licensed under The MIT License
 * 
-* @version   3.3
+* @version   3.4
 * @since     11.27.2010
 * @author    Jose Rui Santos
 * http://www.ruisoftware.com/
@@ -34,18 +34,20 @@
 * For demonstration purposes, the generated markup is shown here in upper case.
 *
 * <div id="overview">
-*   <SPAN class="content"></SPAN>
-*   <SPAN class="viewport"></SPAN>
+*   <SPAN class="content">
+*       <SPAN class="viewport"></SPAN>
+*   </SPAN>
 * </div>
 *
 * If there are bookmarks being used, then additional elements are inserted after the viewport element.
 * The following is a markup that contains 3 bookmarks:
 * <div id="overview">
-*   <SPAN class="content"></SPAN>
-*   <SPAN class="viewport"></SPAN>
-*   <SPAN class="bookm"></SPAN>
-*   <SPAN class="bookm"></SPAN>
-*   <SPAN class="bookm"></SPAN>
+*   <SPAN class="content">
+*       <SPAN class="viewport"></SPAN>
+*       <SPAN class="bookm"></SPAN>
+*       <SPAN class="bookm"></SPAN>
+*       <SPAN class="bookm"></SPAN>
+*   </SPAN>
 * </div>
 *
 *
@@ -107,7 +109,6 @@
 * Getter        Return          Remarks
 * ============  ==============  ===========================================================================================================
 * readonly      boolean         Returns false if the plug-in receives mouse events; true otherwise.
-* center        boolean         Returns false if the content and viewport rectangules are positionated on the top left corner; True if they are centered relatively to the parent.
 * autoHide      boolean         Returns false if the plug-in is always visible; true to hide it when the content has the same or smaller size than the viewport.
 * scrollSpeed   integer/string  Returns the current animation speed in ms when moving from one location to other, trigered by mouse click or by bookmark navigation. Use 0 for no animation. The strings 'slow', 'normal' and 'fast' can also be used.
 * bookmarks     array           Returns all the bookmarks. The type of each array element, depends on the direction parameter:
@@ -122,7 +123,6 @@
 * ================  =============  ============================================================================================================
 * bookmarks         array          Parses the input array and on success, creates all bookmarks from that array. Any previous bookmarks are removed.
 * readonly          boolean        Enables or disables the mouse input
-* center            boolean        Affects the way the content and viewport rectangules are rendered: centered relatively to the parent or not
 * autoHide          boolean        If true then the plug-in automatically hides itself when content has the same or smaller size than the viewport
 * scrollSpeed       integer/string Amount of time that it takes to move from current scroll position to the point where user clicked (in content area). Use 0 for no animation.
 * All setters return the value that was just set.
@@ -131,7 +131,7 @@
 *
 *
 * If the size of the content element that is being monited changes, the plug-in must be notified through a call to 'invalidate' method.
-* Image you have the following markup being used by the plug-in to monitor the document:
+* Imagine you have the following markup being used by the plug-in to monitor the document:
 *    <div id="album"></div>
 * If the album content increases or decreases, then the following call must be made:
 * $("#album").rsOverview('invalidate');
@@ -152,7 +152,6 @@
             animating = false,
             dragInfo,
             cache = {
-                scaleCoef: 0,
                 scrPixels: {
                     x: scrollbarPixels,
                     y: scrollbarPixels
@@ -271,7 +270,7 @@
                     if (idx === -1) {
                         // create a new bookmark
                         var pos = $viewportRect.position(),
-                            $bookm = $('<span>').addClass(opts.bookmarkClass).css('position', 'absolute').appendTo($elem); 
+                            $bookm = $('<span>').addClass(opts.bookmarkClass).css('position', 'absolute').appendTo($contentRect); 
 
                         if (opts.bookmarkHint) {
                             $bookm.attr('title', opts.bookmarkHint);
@@ -279,24 +278,25 @@
                         switch (opts.direction) {
                             case 'horizontal':
                                 $bookm.css({
-                                    'left': Math.round(pos.left + ($viewportRect.width() - $bookm.outerWidth()) / 2) + 'px',
-                                    'top': 0,
-                                    'bottom': 0,
-                                    'height': 'auto'
+                                    left: Math.round(pos.left + ($viewportRect.width() - $bookm.outerWidth()) / 2) + 'px',
+                                    top: 0,
+                                    bottom: 0,
+                                    height: 'auto'
                                 });
                                 break;
                             case 'vertical':
                                 $bookm.css({
-                                    'left': 0,
-                                    'right': 0,
-                                    'width': 'auto',
-                                    'top': Math.round(pos.top + ($viewportRect.height() - $bookm.outerHeight()) / 2) + 'px'
+                                    left: 0,
+                                    right: 0,
+                                    width: 'auto',
+                                    top: Math.round(pos.top + ($viewportRect.height() - $bookm.outerHeight()) / 2) + 'px'
                                 });
                                 break;
                             default:
                                 $bookm.css({
-                                    'left': Math.round(pos.left + ($viewportRect.width() - $bookm.outerWidth()) / 2) + 'px',
-                                    'top': Math.round(pos.top + ($viewportRect.height() - $bookm.outerHeight()) / 2) + 'px'
+                                    left: (key[0] + viewport.sizeX/2)/content.sizeX*100 + '%',
+                                    top: (key[1] + viewport.sizeY/2)/content.sizeY*100 + '%',
+                                    transform: 'translateX(-50%) translateY(-50%)'
                                 });
                         }
                         $bookm.mousedown(function (e) {
@@ -499,7 +499,7 @@
             },
             onResize = function () {
                 var needsToHide = function () {
-                    switch(opts.direction) {
+                    switch (opts.direction) {
                         case 'horizontal': return content.sizeX <= viewport.sizeX;
                         case 'vertical': return content.sizeY <= viewport.sizeY;
                         default: return content.sizeX <= viewport.sizeX && content.sizeY <= viewport.sizeY;
@@ -529,92 +529,83 @@
                 
                 var elementSize = {
                         x: $elem.width(),
-                        y: $elem.height()
-                    },
-                    coefX = 0,
-                    coefY = 0;
-                
-                if (opts.direction !== 'vertical') {
-                    coefX = content.sizeX / elementSize.x;
-                }
-                if (opts.direction !== 'horizontal') {
-                    coefY = content.sizeY / elementSize.y;
-                }
-                cache.scaleCoef = Math.max(coefX, coefY);
-                
-                if (opts.direction !== 'vertical') {
-                    coefX = (viewport.sizeX - getYScrollBarPixels()) / elementSize.x;
-                }
-                if (opts.direction !== 'horizontal') {
-                    coefY = (viewport.sizeY - getXScrollBarPixels()) / elementSize.y;
-                }
-                cache.scaleCoef = Math.max(Math.max(coefX, coefY), cache.scaleCoef);
+                        y: $elem.height()                        
+                    };
+                cache.coefX = Math.min(content.sizeX === 0 ? 0 : (viewport.sizeX - getYScrollBarPixels())/content.sizeX, 1);
+                cache.coefY = Math.min(content.sizeY === 0 ? 0 : (viewport.sizeY - getXScrollBarPixels())/content.sizeY, 1);
 
                 if (opts.direction !== 'horizontal' && opts.direction !== 'vertical') {
-                    // compute inner DIV size that corresponds to the size of the content being monitored
-                    var calcWidth = content.sizeX / cache.scaleCoef,
-                        calcHeight = content.sizeY / cache.scaleCoef;
-                    $contentRect.width(Math.round(calcWidth)).height(Math.round(calcHeight)).css({
-                        'left': Math.round(opts.center ? (elementSize.x - calcWidth) / 2 : 0) + 'px',
-                        'top': Math.round(opts.center ? (elementSize.y - calcHeight) / 2 : 0) + 'px'
-                    });
+                    var contentY = Math.max(content.sizeY, (viewport.sizeY - getXScrollBarPixels())),
+                        coefContent = contentY === 0 ? 0 : Math.max(content.sizeX, (viewport.sizeX - getYScrollBarPixels()))/contentY;
+                    elementSize.coef = elementSize.y === 0 ? 0 : elementSize.x/elementSize.y;
+                    
+                    if (elementSize.coef > coefContent) {
+                        $contentRect.css({
+                            height: '100%',
+                            width: (coefContent === 0 ? 0 : coefContent/elementSize.coef)*100 + '%'
+                        });
+                    } else {
+                        $contentRect.css({
+                            width: '100%',
+                            height: (elementSize.coef === 0 ? 0 : elementSize.coef/coefContent)*100 + '%'
+                        });
+                    }
                 }
+                cache.coefContentX = content.sizeX/$contentRect.width();
+                cache.coefContentY = content.sizeY/$contentRect.height();
                 $elem.triggerHandler('render.rsOverview', [true]);
             },
             doRenderHorizontal = function (needResize) {
                 if (needResize) {                
-                    var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef;
-                    $viewportRect.width(Math.round(calcWidth));
+                    $viewportRect.css('width', cache.coefX*100 + '%');
 
                     for (var i = 0; i < bookmarkUtil.marks.length; ++i) {
                         var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
                             $bookm = bookmarkUtil.$allBks.eq(i);
                         $bookm.css({
-                            'left': Math.round((calcWidth - $bookm.outerWidth()) / 2 + pnt.scrollLeft / cache.scaleCoef) + 'px',
-                            'top': 0,
-                            'bottom': 0
+                            left: (pnt.scrollLeft + viewport.sizeX/2)/content.sizeX*100 + '%',
+                            top: 0,
+                            bottom: 0
                         });
                     }
                 }
-                $viewportRect.css('left', Math.round(viewport.$obj.scrollLeft() / cache.scaleCoef) + 'px');
+                $viewportRect.css('left', (content.sizeX === 0 ? 0 : viewport.$obj.scrollLeft()/content.sizeX*100) + '%');
             },
             doRenderVertical = function (needResize) {
-                if (needResize) {                
-                    var calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.scaleCoef;
-                    $viewportRect.height(Math.round(calcHeight));
-
-                    for (var i = 0; i < bookmarkUtil.marks.length; ++i) {
-                        var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
-                            $bookm = bookmarkUtil.$allBks.eq(i);
-                        $bookm.css({
-                            'top': Math.round((calcHeight - $bookm.outerHeight()) / 2 + pnt.scrollTop / cache.scaleCoef) + 'px',
-                            'left': 0,
-                            'right': 0
-                        });
-                    }
-                }
-                $viewportRect.css('top', Math.round(viewport.$obj.scrollTop() / cache.scaleCoef) + 'px');
-            },
-            doRenderBoth = function (pos, needResize) {
                 if (needResize) {
-                    var calcWidth = (viewport.sizeX - getYScrollBarPixels()) / cache.scaleCoef,
-                        calcHeight = (viewport.sizeY - getXScrollBarPixels()) / cache.scaleCoef;
-                    $viewportRect.width(Math.round(calcWidth)).height(Math.round(calcHeight));
+                    $viewportRect.css('height', cache.coefY*100 + '%');
 
                     for (var i = 0; i < bookmarkUtil.marks.length; ++i) {
                         var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
                             $bookm = bookmarkUtil.$allBks.eq(i);
                         $bookm.css({
-                            'left': Math.round(pos.left + (calcWidth - $bookm.outerWidth()) / 2 + pnt.scrollLeft / cache.scaleCoef) + 'px',
-                            'top': Math.round(pos.top + (calcHeight - $bookm.outerHeight()) / 2 + pnt.scrollTop / cache.scaleCoef) + 'px'
+                            top: (pnt.scrollTop + viewport.sizeY/2)/content.sizeY*100 + '%',
+                            left: 0,
+                            right: 0
                         });
                     }
                 }
-                pos.left = viewport.$obj.scrollLeft() / cache.scaleCoef + (opts.center ? pos.left : 0);
-                pos.top = viewport.$obj.scrollTop() / cache.scaleCoef + (opts.center ? pos.top : 0);
+                $viewportRect.css('top', (content.sizeY === 0 ? 0 : viewport.$obj.scrollTop()/content.sizeY*100) + '%');
+            },
+            doRenderBoth = function (needResize) {
+                if (needResize) {
+                    $viewportRect.css({
+                        width: cache.coefX*100 + '%',
+                        height: cache.coefY*100 + '%'
+                    });
+
+                    for (var i = 0; i < bookmarkUtil.marks.length; ++i) {
+                        var pnt = bookmarkUtil.getPnt(bookmarkUtil.marks[i]),
+                            $bookm = bookmarkUtil.$allBks.eq(i);
+                        $bookm.css({
+                            left: (pnt.scrollLeft + viewport.sizeX/2)/content.sizeX*100 + '%',
+                            top: (pnt.scrollTop + viewport.sizeY/2)/content.sizeY*100 + '%'
+                        });
+                    }
+                }
                 $viewportRect.css({
-                    'left': Math.round(pos.left) + 'px',
-                    'top': Math.round(pos.top) + 'px'
+                    left: (content.sizeX === 0 ? 0 : viewport.$obj.scrollLeft()/content.sizeX*100) + '%',
+                    top: (content.sizeY === 0 ? 0 : viewport.$obj.scrollTop()/content.sizeY*100) + '%'
                 });
             },
             onRender = function (event, needResize) {
@@ -627,7 +618,7 @@
                         doRenderVertical(needResize);
                         break;
                     default:
-                        doRenderBoth($contentRect.position(), needResize);
+                        doRenderBoth(needResize);
                 }
                 if (!animating) {
                     bookmarkUtil.checkEvents(event);
@@ -688,7 +679,6 @@
                 switch (field) {
                     case 'bookmarks': return bookmarkUtil.marks;
                     case 'readonly': return opts.readonly;
-                    case 'center': return opts.center;
                     case 'autoHide': return opts.autoHide;
                     case 'scrollSpeed': return opts.scrollSpeed;
                 }
@@ -703,10 +693,6 @@
                         break;
                     case 'readonly':
                         opts.readonly = value;
-                        break;
-                    case 'center':
-                        opts.center = value;
-                        $elem.triggerHandler('resize.rsOverview');
                         break;
                     case 'autoHide':
                         opts.autoHide = value;
@@ -737,8 +723,8 @@
                         viewPos = $viewportRect.position();
                     dragInfo = {
                         initPos: { 
-                            x: viewPos.left - contPos.left,
-                            y: viewPos.top - contPos.top
+                            x: viewport.$obj.scrollLeft(),
+                            y: viewport.$obj.scrollTop()
                         },
                         initClick: {
                             x: e.clientX,
@@ -752,23 +738,23 @@
                     };
 
                     $(document).bind('mousemove.rsOverview', doDocumentMousemove);
-                    e.preventDefault();
+                    e.stopPropagation();
                 }
             },
             doDocumentMousemove = function (e) {
                 switch (opts.direction) {
                     case 'horizontal':
                         viewport.$obj.
-                            scrollLeft(cache.scaleCoef * (e.clientX - dragInfo.initClick.x + dragInfo.initPos.x));
+                            scrollLeft((e.clientX - dragInfo.initClick.x)*cache.coefContentX + dragInfo.initPos.x);
                         break;
                     case 'vertical':
                         viewport.$obj.
-                            scrollTop(cache.scaleCoef * (e.clientY - dragInfo.initClick.y + dragInfo.initPos.y));
+                            scrollTop((e.clientY - dragInfo.initClick.y)*cache.coefContentY + dragInfo.initPos.y);
                         break;
                     default:
                         viewport.$obj.
-                            scrollLeft(cache.scaleCoef * (e.clientX - dragInfo.initClick.x + dragInfo.initPos.x)).
-                            scrollTop(cache.scaleCoef * (e.clientY - dragInfo.initClick.y + dragInfo.initPos.y));
+                            scrollLeft((e.clientX - dragInfo.initClick.x)*cache.coefContentX + dragInfo.initPos.x).
+                            scrollTop((e.clientY - dragInfo.initClick.y)*cache.coefContentY + dragInfo.initPos.y);
                 }
                 e.preventDefault();
             },
@@ -780,22 +766,22 @@
             doContentMousedownHorizVert = function (e) {
                 if (!opts.readonly) {
                     scrollTo(opts.direction === 'horizontal' ? 
-                        { scrollLeft: (e.offsetX - $viewportRect.width() / 2)*cache.scaleCoef } :
-                        { scrollTop: (e.offsetY - $viewportRect.height() / 2)*cache.scaleCoef }, function () {
+                        { scrollLeft: e.offsetX*cache.coefContentX - viewport.sizeX/2 } :
+                        { scrollTop:  e.offsetY*cache.coefContentY - viewport.sizeY/2 }, function () {
                         bookmarkUtil.checkEvents(e);
                     });
-                    e.preventDefault();
+                    e.stopPropagation();
                 }
             },
             doContentMousedownBoth = function (e) {
                 if (!opts.readonly) {
                     scrollTo({
-                        scrollLeft: cache.scaleCoef * (e.offsetX - $viewportRect.width() / 2),
-                        scrollTop: cache.scaleCoef * (e.offsetY - $viewportRect.height() / 2)
+                        scrollLeft: e.offsetX*cache.coefContentX - viewport.sizeX/2,
+                        scrollTop:  e.offsetY*cache.coefContentY - viewport.sizeY/2
                     }, function () {
                         bookmarkUtil.checkEvents(e);
                     });
-                    e.preventDefault();
+                    e.stopPropagation();
                 }
             },
             init = function () {
@@ -804,16 +790,21 @@
                 }
                 $contentRect = $('<span>').addClass(opts.contentClass).css('position', 'absolute');
                 $viewportRect = $('<span>').addClass(opts.viewportClass).css('position', 'absolute');
-                $elem.append($contentRect).append($viewportRect);
+                $elem.append($contentRect.append($viewportRect));
                 if (opts.direction === 'horizontal' || opts.direction === 'vertical') {
-                    $contentRect.css({ 'left': 0, 'top': 0, 'bottom': 0, 'right': 0 });
-                }
-                switch (opts.direction) {
-                    case 'horizontal':
-                        $viewportRect.css({ 'top': 0, 'bottom': 0 });
-                        break;
-                    case 'vertical':
-                        $viewportRect.css({ 'left': 0, 'right': 0 });
+                    $contentRect.css({
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        right: 0
+                    });
+                    $viewportRect.css(opts.direction === 'horizontal' ? { top: 0, bottom: 0 } : { left: 0, right: 0 });
+                } else {
+                    $contentRect.css({
+                        left: '50%',
+                        top: '50%',
+                        transform: 'translateX(-50%) translateY(-50%)'
+                    });
                 }
 
                 // elements being monitorized for scroll and resize events
@@ -979,7 +970,6 @@
         // properties
         monitor: $(window),             // The element being monitored by the plug-in. Type: jQuery object.
         direction: 'both',              // The monitoring direction. Type: String 'horizontal', 'vertical' or 'both'.
-        center: true,                   // Whether to render the content and viewport rectangles centered in the placeholder area. Ignored for direction 'horizontal' and 'vertical'. Type: boolean.
         autoHide: false,                // Whether to hide the plug-in when the content has the same size or is smaller than the viewport. Type: boolean.
         readonly: false,                // False: Reacts to mouse/keyboard events; True: Ignores mouse/keyboard events. Type: boolean.
         scrollSpeed: 'normal',          // Animation speed used when moving to a selected position or when moving to a bookmark. You can also use a sepecific duration in milliseconds. Use 0 for no animation. Type: string or integer.

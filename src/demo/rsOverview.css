@@ -28,6 +28,26 @@
     background-color: orange; /* IE mouse events only work on opaque elements */
 }
 
+.bookm {
+    border-radius: 50%;
+    border: 1px gray solid;
+    width: 0.5vw;
+    height: 0.5vw;
+}
+
+.bookm:hover {
+    border-color: black;
+    cursor: pointer;
+}
+
+.bookm.active {
+    background-color: gray;
+    border-style: solid;
+}
+
+.bookm.active:hover {
+    border-color: gray;
+}
 
 /* Optional styles ******/
 /************************/
@@ -57,10 +77,6 @@ body {
 }
 
 .content {
-    filter: alpha(opacity=40);
-    -moz-opacity: 0.4;
-    -khtml-opacity: 0.4;
-    opacity: 0.4;
     cursor: crosshair;
 }
 
@@ -72,17 +88,13 @@ body {
 
 .viewport {
     background-color: red;
-    filter: alpha(opacity=50);
-    -moz-opacity: 0.5;
-    -khtml-opacity: 0.5;
-    opacity: 0.5;
     cursor: move;
 }
 
 #overviewDiv .viewport,
 #overviewDivHoriz .viewport,
 #overviewDivVert .viewport {
-    background-color: blue;
+    background-color: #9a9a9a;
 }
 
 #overflowed {
@@ -93,27 +105,6 @@ body {
     overflow: hidden; /* could be auto, but is hidden because we want to use our own custom made scroll bars */
     border: 1px solid black;
     background-color: #FFFFE0;
-    }
-
-.bookm {
-    border-radius: 3px;
-    border: 1px gray solid;
-    width: 5px;
-    height: 5px;
-}
-
-.bookm:hover {
-    border-color: black;
-    cursor: pointer;
-}
-
-.bookm.active {
-    background-color: gray;
-    border-style: solid;
-}
-
-.bookm.active:hover {
-    border-color: gray;
 }
 
 #bookmarkPaneDoc {
