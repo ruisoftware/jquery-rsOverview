@@ -85,32 +85,32 @@
 
     </style>
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
-    <script src="../../dist/jquery.rsOverview.min.js"></script>
+    <script src="../jquery.rsOverview.js"></script>
     <script>
         $(function () {
             // document overview
-            $("#overviewDoc").rsOverview();
+            $("#_overviewDoc").rsOverview();
             
             // document horizontal scroll bar
-            $("#overviewDocHoriz").rsOverview({
+            $("#_overviewDocHoriz").rsOverview({
                 direction: 'horizontal'
             });
             
             // document vertical scroll bar (uses mouse wheel)
-            $("#overviewDocVert").rsOverview({
+            $("#_overviewDocVert").rsOverview({
                 mousewheel: 50,
                 direction: 'vertical'
             });
 
             
             // overflowed div overview
-            $("#overviewDiv").rsOverview({
+            $("#_overviewDiv").rsOverview({
                 monitor: $("#overflowed"),
                 scrollSpeed: 'slow'
             });
             
             // overflowed horizontal scroll bar
-            $("#overviewDivHoriz").rsOverview({
+            $("#_overviewDivHoriz").rsOverview({
                 monitor: $("#overflowed"),
                 direction: 'horizontal'
             });
@@ -118,7 +118,7 @@
             // overflowed vertical scroll bar (uses mouse wheel)
             $("#overviewDivVert").rsOverview({
                 monitor: $("#overflowed"),
-                mousewheel: 50,
+                mousewheel: 500,
                 direction: 'vertical'
             });
         });

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js'></script>
+    <script src='../../dist/jquery.rsOverview.min.js'></script>
+    <style>
+        #doc {
+		    position: fixed;
+		    width: 5em;
+		    height: 15em;
+            right: 1em;
+            top: 1em;
+		}
+
+        #overflowed {
+            display: inline-block;
+            width: 30em;
+            height: 20em;
+            border: 1px grey dashed;
+            overflow: hidden; /* hide the native scroll bars. I want to use custom ones instead */
+        }
+
+        #element {
+            position: absolute;
+            left: 32em;
+            top: 10em;
+            width: 10em;
+            height: 8em;
+        }
+
+        #elementHoriz {
+            position: absolute;
+            left: .5em;
+            width: 29em;
+            top: 26.2em;
+            height: 1em;
+        }
+
+        #elementVert {
+            position: absolute;
+            top: 7.2em;
+            left: 29.6em;
+            height: 19em;
+            width: 1em;  
+        }
+
+        .content {
+            background-color: rgba(200, 100, 100, .5);
+            cursor: crosshair;
+        }
+
+        .viewport {
+            background-color: rgba(0, 0, 0, .5);
+            cursor: move;
+        }
+
+        #element .content {
+            background-image: url('./bug.jpg');
+            background-size: cover;
+            overflow: hidden; /* to hide the box-shadow below */
+        }
+
+        #element .viewport {
+            background-color: transparent;
+            box-shadow: 0 0 0 3em rgba(255, 255, 255, .4);
+        }
+    </style>
+</head>
+<body>
+    <h1>jquery-rsOverview plugin demo</h1>
+    <p>Make your own horizontal, vertical or bidirectional scroll bar.</p>
+
+    <aside id='doc'></aside> <!-- bidirectional scroll bar for the whole document -->
+ 
+    <div id='overflowed'>
+        <img src='./bug.jpg' width='653' height='436'>
+    </div>
+    <!-- vertical, horizontal and bidirectional scroll bars -->
+    <aside id='elementVert'></aside>
+    <aside id='elementHoriz'></aside>
+    <aside id='element'></aside>
+
+    <script>
+        // add some content to the page
+        var $body = $('body').css('white-space', 'nowrap');
+        for (var i = 0; i < 250; ++i) {
+            $body.append('<p>' + new Array(15).join('The quick, brown fox jumps over a lazy dog. --' + i + '--') + '</p>');
+        }
+
+        // bidirectional scroll bar for the whole document
+        $('#doc').rsOverview();
+        
+        // bidirectional scroll bar for the #overflowed element
+        $('#element').rsOverview({
+            monitor: $('#overflowed')
+        });
+
+        // vertical scroll bar for the #overflowed element
+        $('#elementVert').rsOverview({
+            monitor: $('#overflowed'),
+            direction: 'vertical'
+        });
+
+        // horizontal scroll bar for the #overflowed element
+        $('#elementHoriz').rsOverview({
+            monitor: $('#overflowed'),
+            direction: 'horizontal'
+        });
+    </script>
+</body>
+</html>
