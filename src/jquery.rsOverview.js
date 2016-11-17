@@ -719,8 +719,7 @@
                         (monitorWindow ? $('html,body') : viewport.$obj).stop(true);
                         animating = false;
                     }
-                    var contPos = $contentRect.position(),
-                        viewPos = $viewportRect.position();
+
                     dragInfo = {
                         initPos: { 
                             x: viewport.$obj.scrollLeft(),
