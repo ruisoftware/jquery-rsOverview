@@ -727,8 +727,8 @@
                             y: viewport.$obj.scrollTop()
                         },
                         initClick: {
-                            x: e.clientX,
-                            y: e.clientY
+                            x: getEventClientX(e),
+                            y: getEventClientY(e)
                         }
                     };
 
@@ -737,7 +737,7 @@
                         return false;
                     };
 
-                    $(document).bind('mousemove.rsOverview', doDocumentMousemove);
+                    $(document).bind('mousemove.rsOverview touchmove.rsOverview', doDocumentMousemove);
                     e.stopPropagation();
                 }
             },
@@ -745,29 +745,29 @@
                 switch (opts.direction) {
                     case 'horizontal':
                         viewport.$obj.
-                            scrollLeft((e.clientX - dragInfo.initClick.x)*cache.coefContentX + dragInfo.initPos.x);
+                            scrollLeft((getEventClientX(e) - dragInfo.initClick.x)*cache.coefContentX + dragInfo.initPos.x);
                         break;
                     case 'vertical':
                         viewport.$obj.
-                            scrollTop((e.clientY - dragInfo.initClick.y)*cache.coefContentY + dragInfo.initPos.y);
+                            scrollTop((getEventClientY(e) - dragInfo.initClick.y)*cache.coefContentY + dragInfo.initPos.y);
                         break;
                     default:
                         viewport.$obj.
-                            scrollLeft((e.clientX - dragInfo.initClick.x)*cache.coefContentX + dragInfo.initPos.x).
-                            scrollTop((e.clientY - dragInfo.initClick.y)*cache.coefContentY + dragInfo.initPos.y);
+                            scrollLeft((getEventClientX(e) - dragInfo.initClick.x)*cache.coefContentX + dragInfo.initPos.x).
+                            scrollTop((getEventClientY(e) - dragInfo.initClick.y)*cache.coefContentY + dragInfo.initPos.y);
                 }
                 e.preventDefault();
             },
             doDocumentMouseup = function () {
                 if (!opts.readonly) {
-                    $(document).unbind('mousemove.rsOverview', doDocumentMousemove);
+                    $(document).unbind('mousemove.rsOverview touchmove.rsOverview', doDocumentMousemove);
                 }
             },
             doContentMousedownHorizVert = function (e) {
                 if (!opts.readonly) {
                     scrollTo(opts.direction === 'horizontal' ? 
-                        { scrollLeft: e.offsetX*cache.coefContentX - viewport.sizeX/2 } :
-                        { scrollTop:  e.offsetY*cache.coefContentY - viewport.sizeY/2 }, function () {
+                        { scrollLeft: getEventOffsetX(e)*cache.coefContentX - viewport.sizeX/2 } :
+                        { scrollTop:  getEventOffsetY(e)*cache.coefContentY - viewport.sizeY/2 }, function () {
                         bookmarkUtil.checkEvents(e);
                     });
                     e.stopPropagation();
@@ -776,13 +776,35 @@
             doContentMousedownBoth = function (e) {
                 if (!opts.readonly) {
                     scrollTo({
-                        scrollLeft: e.offsetX*cache.coefContentX - viewport.sizeX/2,
-                        scrollTop:  e.offsetY*cache.coefContentY - viewport.sizeY/2
+                        scrollLeft: getEventOffsetX(e)*cache.coefContentX - viewport.sizeX/2,
+                        scrollTop:  getEventOffsetY(e)*cache.coefContentY - viewport.sizeY/2
                     }, function () {
                         bookmarkUtil.checkEvents(e);
                     });
                     e.stopPropagation();
                 }
+            },
+            getFirstTouch = function (event) {
+                if (event.originalEvent && event.originalEvent.touches && event.originalEvent.touches.length > 0) {
+                    return event.originalEvent.touches[0];
+                }
+                return null;
+            },
+            getEventClientX = function (event) {
+                var firstTouch = getFirstTouch(event);
+                return firstTouch ? firstTouch.clientX : event.clientX;
+            },
+            getEventClientY = function (event) {
+                var firstTouch = getFirstTouch(event);
+                return firstTouch ? firstTouch.clientY : event.clientY;
+            },
+            getEventOffsetX = function (event) {
+                var firstTouch = getFirstTouch(event);
+                return firstTouch ? firstTouch.pageX - $(firstTouch.target).offset().left : event.offsetX;
+            },
+            getEventOffsetY = function (event) {
+                var firstTouch = getFirstTouch(event);
+                return firstTouch ? firstTouch.pageY - $(firstTouch.target).offset().top : event.offsetY;
             },
             init = function () {
                 if ($elem.css('position') === 'static') {
@@ -820,16 +842,16 @@
                     (monitorWindow? $(window) : viewport.$obj).bind('DOMMouseScroll.rsOverview mousewheel.rsOverview', onMouseWheel);
                 }
 
-                $viewportRect.bind('mousedown.rsOverview', doViewportMousedown);
+                $viewportRect.bind('mousedown.rsOverview touchstart.rsOverview', doViewportMousedown);
 
                 // the mouseup event might happen outside the plugin, so to make sure the unbind always runs, it must done on document level
-                $(document).bind('mouseup.rsOverview', doDocumentMouseup);
+                $(document).bind('mouseup.rsOverview touchend.rsOverview', doDocumentMouseup);
 
                 // mouse click on the content: viewport jumps directly to that position
                 if (opts.direction === 'horizontal' || opts.direction === 'vertical') {
-                    $contentRect.bind('mousedown.rsOverview', doContentMousedownHorizVert);
+                    $contentRect.bind('mousedown.rsOverview touchstart.rsOverview', doContentMousedownHorizVert);
                 } else {
-                    $contentRect.bind('mousedown.rsOverview', doContentMousedownBoth);
+                    $contentRect.bind('mousedown.rsOverview touchstart.rsOverview', doContentMousedownBoth);
                 }
 
                 $elem.
@@ -861,15 +883,15 @@
                 }
                 
                 $viewportRect.
-                    unbind('mousedown.rsOverview', doViewportMousedown);
+                    unbind('mousedown.rsOverview touchstart.rsOverview', doViewportMousedown);
                 $(document).
-                    unbind('mouseup.rsOverview', doDocumentMouseup).
-                    unbind('mousemove.rsOverview', doDocumentMousemove);
+                    unbind('mouseup.rsOverview touchend.rsOverview', doDocumentMouseup).
+                    unbind('mousemove.rsOverview touchmove.rsOverview', doDocumentMousemove);
 
                 if (opts.direction === 'horizontal' || opts.direction === 'vertical') {
-                    $contentRect.unbind('mousedown.rsOverview', doContentMousedownHorizVert);
+                    $contentRect.unbind('mousedown.rsOverview touchstart.rsOverview', doContentMousedownHorizVert);
                 } else {
-                    $contentRect.unbind('mousedown.rsOverview', doContentMousedownBoth);
+                    $contentRect.unbind('mousedown.rsOverview touchstart.rsOverview', doContentMousedownBoth);
                 }
 
                 $elem.
