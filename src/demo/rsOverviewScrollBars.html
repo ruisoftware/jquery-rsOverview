@@ -89,28 +89,28 @@
     <script>
         $(function () {
             // document overview
-            $("#_overviewDoc").rsOverview();
+            $("#overviewDoc").rsOverview();
             
             // document horizontal scroll bar
-            $("#_overviewDocHoriz").rsOverview({
+            $("#overviewDocHoriz").rsOverview({
                 direction: 'horizontal'
             });
             
             // document vertical scroll bar (uses mouse wheel)
-            $("#_overviewDocVert").rsOverview({
+            $("#overviewDocVert").rsOverview({
                 mousewheel: 50,
                 direction: 'vertical'
             });
 
             
             // overflowed div overview
-            $("#_overviewDiv").rsOverview({
+            $("#overviewDiv").rsOverview({
                 monitor: $("#overflowed"),
                 scrollSpeed: 'slow'
             });
             
             // overflowed horizontal scroll bar
-            $("#_overviewDivHoriz").rsOverview({
+            $("#overviewDivHoriz").rsOverview({
                 monitor: $("#overflowed"),
                 direction: 'horizontal'
             });
@@ -118,7 +118,7 @@
             // overflowed vertical scroll bar (uses mouse wheel)
             $("#overviewDivVert").rsOverview({
                 monitor: $("#overflowed"),
-                mousewheel: 500,
+                mousewheel: 50,
                 direction: 'vertical'
             });
         });
