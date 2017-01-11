@@ -35,7 +35,7 @@ Check out a [demo](http://codepen.io/ruisoftware/pen/LbbGme "on CodePen").
 
 You can install from [npm](https://www.npmjs.com/):
 ````bash
-npm install jquery-rsOverview --save
+npm install jquery.rsOverview --save
 ````
 or directly from git:
 ````javascript
