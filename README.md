@@ -1,9 +1,9 @@
-#jquery-rsOverview [![Build Status](https://travis-ci.org/ruisoftware/jquery-rsOverview.svg?branch=master)](https://travis-ci.org/ruisoftware/jquery-rsOverview)
+# jquery-rsOverview [![Build Status](https://travis-ci.org/ruisoftware/jquery-rsOverview.svg?branch=master)](https://travis-ci.org/ruisoftware/jquery-rsOverview)
 Displays two rectangles, one inside the other. The outer rectangle represents the content (document), while the inner rectangle represents the viewport (browser window).  
 
 It provides to the user a visual overview of where the viewport is located within the document as well their relative sizes.  
 
-#Use cases
+# Use cases
 - Custom horizontal scroll bar.
 - Custom vertical scroll bar.
 - Custom two directional scroll bar in a single control.
@@ -15,7 +15,7 @@ You can use the [beforeunload event](https://developer.mozilla.org/en-US/docs/We
 
 Check out a [demo](http://codepen.io/ruisoftware/pen/LbbGme "on CodePen").
 
-#Key Features
+# Key Features
  - Works with the <code>&lt;body&gt;</code> (whole page) or any other element;
  - Optionally auto hides itself if the viewport is larger than the content;
  - Viewport size is updated when browser is resized;
@@ -31,7 +31,7 @@ Check out a [demo](http://codepen.io/ruisoftware/pen/LbbGme "on CodePen").
      - Strong event driven support;
  - Responsive design, suitable for any window sizes;
  
-#Installation
+# Installation
 
 You can install from [npm](https://www.npmjs.com/):
 ````bash
@@ -45,7 +45,7 @@ or you can download the Zip archive from github, clone or fork this repository a
 
 You also need to download jQuery. In the example below, jQuery is downloaded from Google cdn.
 
-#Usage
+# Usage
 
 First, you must run grunt. Grunt among other tasks, minimizes the js file and places all production files inside a new dist folder.
 
